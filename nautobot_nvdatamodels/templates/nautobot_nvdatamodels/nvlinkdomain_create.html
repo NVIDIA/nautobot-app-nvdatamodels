@@ -1,0 +1,37 @@
+{% extends 'generic/object_create.html' %}
+{% load form_helpers %}
+{% load helpers %}
+
+{% block form %}
+<div class="panel panel-default">
+    <div class="panel-heading"><strong>NVLink Domain</strong></div>
+    <div class="panel-body">
+        {% render_field form.name %}
+        {% render_field form.status %}
+        {% render_field form.location %}
+        {% render_field form.role %}
+        {% render_field form.rack_group %}
+        {% render_field form.rack %}
+        {% render_field form.members %}
+        {% render_field form.protocol %}
+        {% render_field form.topology %}
+    </div>
+</div>
+<div class="panel panel-default">
+    <div class="panel-heading"><strong>Clustering</strong></div>
+    <div class="panel-body">
+        {% render_field form.cluster_id %}
+    </div>
+</div>
+
+{# {% include 'inc/tenancy_form_panel.html' %} #}
+<div class="panel panel-default">
+    <div class="panel-heading"><strong>Tenancy</strong></div>
+    <div class="panel-body">
+        {% render_field form.tenant_group %}
+        {% render_field form.tenant %}
+    </div>
+</div>
+
+{% include 'inc/extras_features_edit_form_fields.html' %}
+{% endblock form %}

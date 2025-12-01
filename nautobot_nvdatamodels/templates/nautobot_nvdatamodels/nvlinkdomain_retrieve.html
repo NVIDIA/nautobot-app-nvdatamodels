@@ -1,0 +1,166 @@
+{% extends 'generic/object_retrieve.html' %}
+{% load helpers %}
+{% load django_tables2 %}
+
+{% block content_left_page %}
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <strong>NVLink Domain</strong>
+    </div>
+    <table class="table table-hover panel-body attr-table">
+        <tr>
+            <td>Name</td>
+            <td>
+                {{ object.name }}
+            </td>
+        </tr>
+        <tr>
+            <td>Status</td>
+            <td>
+                {{ object.status|hyperlinked_object_with_color }}
+            </td>
+        </tr>
+        <tr>
+            <td>Role</td>
+            <td>
+                {{ object.role|hyperlinked_object_with_color }}
+            </td>
+        </tr>
+        <tr>
+            <td>Tenant</td>
+            <td>
+                {{ object.tenant|hyperlinked_object|placeholder }}
+            </td>
+        </tr>
+        <tr>
+            <td>Location</td>
+            <td>
+                {{ object.location|hyperlinked_object }}
+            </td>
+        </tr>
+        <tr>
+            <td>Rack Group</td>
+            <td>
+                {{ object.rack_group|hyperlinked_object|placeholder }}
+            </td>
+        </tr>
+        <tr>
+            <td>Rack</td>
+            <td>
+                {{ object.rack|hyperlinked_object|placeholder }}
+            </td>
+        </tr>
+        <tr>
+            <td>Protocol</td>
+            <td>
+                {{ object.get_protocol_display|placeholder }}
+            </td>
+        </tr>
+        <tr>
+            <td>Topology</td>
+            <td>
+                {{ object.get_topology_display|placeholder }}
+            </td>
+        </tr>
+        <tr>
+            <td>Cluster ID</td>
+            <td>
+                {% if object.cluster_id %}
+                <span class="hover_copy">
+                    <span id="copy_title">{{ object.cluster_id }}</span>
+                    <button type="button" class="btn btn-inline btn-default hover_copy_button" data-clipboard-text="{{ object.cluster_id }}">
+                        <span class="mdi mdi-content-copy"></span>
+                    </button>
+                </span>
+                {% else %}
+                    {{ object.cluster_id|placeholder }}
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+</div>
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <strong>Rack Elevation{% if object.rack_group %}s{% endif %}</strong>
+    </div>
+    <div class="panel-body" id="rack-elevation">
+        {% if racks %}
+        <div class="row">
+            <div class="col-md-12">
+                <div class="text-right" style="margin-bottom: 15px;">
+                    <button class="btn btn-default toggle-images" selected="selected">
+                        <span class="mdi mdi mdi-checkbox-marked-circle-outline" aria-hidden="true"></span> Show Images
+                    </button>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'plugins:nautobot_nvdatamodels:nvlinkdomain' pk=object.pk %}{% querystring face='front' %}#rack-elevation" class="btn btn-default{% if rack_face == 'front' %} active{% endif %}">Front</a>
+                        <a href="{% url 'plugins:nautobot_nvdatamodels:nvlinkdomain' pk=object.pk %}{% querystring face='rear' %}#rack-elevation" class="btn btn-default{% if rack_face == 'rear' %} active{% endif %}">Rear</a>
+                    </div>
+                </div>
+                <div style="white-space: nowrap; overflow-x: scroll;">
+                    {% for rack in racks %}
+                        <div style="display: inline-block; margin-right: 12px; width: 254px">
+                            <div style="margin-left: 30px">
+                            <div class="text-center">
+                                <strong>{{ rack|hyperlinked_object }}</strong>
+                                {% if rack.role %}
+                                    <br /><small class="label" style="color: {{ rack.role.color|fgcolor }}; background-color: #{{ rack.role.color }}">{{ rack.role }}</small>
+                                {% endif %}
+                                {% if rack.facility_id %}
+                                    <br /><small class="text-muted">{{ rack.facility_id }}</small>
+                                {% endif %}
+                            </div>
+                            {% include 'dcim/inc/rack_elevation.html' with object=rack face=rack_face %}
+                            <div class="clearfix"></div>
+                            <div class="text-center">
+                                <strong>{{ rack|hyperlinked_object }}</strong>
+                                {% if rack.facility_id %}
+                                    <small class="text-muted">({{ rack.facility_id }})</small>
+                                {% endif %}
+                            </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <span class="text-muted">No rack or rack group assigned</span>
+        {% endif %}
+    <br />
+    </div>
+</div>
+{% endblock content_left_page %}
+{% block content_right_page %}
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <strong>Members</strong>
+        </div>
+        {% if perms.nautobot_nvdatamodels.change_nvlinkdomain %}
+            <form action="{% url 'plugins:nautobot_nvdatamodels:nvlinkdomain_remove_devices' pk=object.pk %}" method="post">
+            {% csrf_token %}
+        {% endif %}
+        <div class="panel-body">
+            {% render_table device_table %}
+        </div>
+        {% if perms.nautobot_nvdatamodels.change_nvlinkdomain %}
+            <div class="panel-footer noprint">
+                <div class="pull-right">
+                    <a href="{% url 'plugins:nautobot_nvdatamodels:nvlinkdomain_add_devices' pk=object.pk %}?location={{ object.location.pk }}" class="btn btn-primary btn-xs">
+                        <span class="mdi mdi-plus-thick" aria-hidden="true"></span>
+                        Add devices
+                    </a>
+                </div>
+                <button type="submit" name="_remove" class="btn btn-danger primary btn-xs">
+                    <span class="mdi mdi-trash-can-outline" aria-hidden="true"></span>
+                    Remove devices
+                </button>
+            </div>
+            </form>
+        {% endif %}
+    </div>
+{% endblock content_right_page %}
+
+{% block javascript %}
+    {{ block.super }}
+    <script src="{% versioned_static 'js/rack_elevations.js' %}"></script>
+{% endblock javascript %}

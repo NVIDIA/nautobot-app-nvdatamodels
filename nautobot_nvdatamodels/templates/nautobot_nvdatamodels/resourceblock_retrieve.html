@@ -1,0 +1,134 @@
+{% extends 'generic/object_retrieve.html' %}
+{% load helpers %}
+{% load django_tables2 %}
+
+{% block content_left_page %}
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <strong>Resource Block</strong>
+    </div>
+    <table class="table table-hover panel-body attr-table">
+        <tr>
+            <td>Name</td>
+            <td>{{ object.name }}</td>
+        </tr>
+        <tr>
+            <td>Status</td>
+            <td>{{ object.status|hyperlinked_object_with_color }}</td>
+        </tr>
+        <tr>
+            <td>Protocol</td>
+            <td>{{ object.get_protocol_display|placeholder }}</td>
+        </tr>
+        <tr>
+            <td>Role</td>
+            <td>{{ object.role|hyperlinked_object_with_color|placeholder }}</td>
+        </tr>
+        {% include 'inc/tenant_table_row.html' %}
+        <tr>
+            <td>Location</td>
+            <td>{{ object.location|hyperlinked_object }}</td>
+        </tr>
+        <tr>
+            <td>Dynamic Group</td>
+            <td>{{ object.dynamic_group|hyperlinked_object|placeholder }}</td>
+        </tr>
+        <tr>
+            <td>Total Devices</td>
+            <td>{{ object.device_count }}</td>
+        </tr>
+    </table>
+</div>
+{% endblock content_left_page %}
+
+{% block content_right_page %}
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <strong>Static Devices</strong>
+            {% if object.static_device_count > 0 %}
+                <a href="{% url 'dcim:device_list' %}?nautobot_nvdatamodels_resource_block={{ object.pk }}" class="badge">{{ object.static_device_count }}</a>
+            {% else %}
+                <span class="badge">0</span>
+            {% endif %}
+        </div>
+        
+        {% if perms.nautobot_nvdatamodels.change_resourceblock %}
+            <form id="static-device-form" action="{% url 'plugins:nautobot_nvdatamodels:resourceblock_remove_devices' pk=object.pk %}" method="post">
+            {% csrf_token %}
+        {% endif %}
+        
+        {% if static_device_table.rows %}
+            <div class="panel-body">
+                {% render_table static_device_table %}
+            </div>
+        {% else %}
+            <div class="panel-body text-muted">
+                None
+            </div>
+        {% endif %}
+        
+        {% if perms.nautobot_nvdatamodels.change_resourceblock %}
+            <div class="panel-footer text-right noprint">
+                {% if static_device_table.rows %}
+                    <button type="submit" name="_remove" class="btn btn-danger btn-xs pull-left">
+                        <span class="mdi mdi-trash-can-outline" aria-hidden="true"></span>
+                        Remove devices
+                    </button>
+                {% endif %}
+                <button type="button" class="btn btn-primary btn-xs" data-url="{% url 'plugins:nautobot_nvdatamodels:resourceblock_add_devices' pk=object.pk %}{% if object.location %}?location={{ object.location.pk }}{% endif %}" onclick="window.location.href=this.dataset.url">
+                    <span class="mdi mdi-plus-thick" aria-hidden="true"></span>
+                    Add devices
+                </button>
+            </div>
+            </form>
+        {% endif %}
+    </div>
+
+    {# Dynamic Devices Table #}
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <strong>Dynamic Devices</strong>
+            {% if object.dynamic_device_count > 0 and object.dynamic_group %}
+                <a href="{% url 'dcim:device_list' %}?dynamic_groups={{ object.dynamic_group.pk }}" class="badge">{{ object.dynamic_device_count }}</a>
+            {% else %}
+                <span class="badge">0</span>
+            {% endif %}
+        </div>
+        
+        {% if dynamic_device_table.rows %}
+            <div class="panel-body">
+                {% render_table dynamic_device_table %}
+            </div>
+        {% else %}
+            <div class="panel-body text-muted">
+                {% if object.dynamic_group %}
+                    No devices match the dynamic group criteria.
+                {% else %}
+                    None
+                {% endif %}
+            </div>
+        {% endif %}
+        
+        <div class="panel-footer">
+            <small class="text-muted text-wrap">
+                <span class="mdi mdi-information" aria-hidden="true"></span>
+                {% if object.dynamic_group %}
+                    To modify this list, change the Dynamic Group's filter criteria.
+                {% else %}
+                    Assign a Dynamic Group to automatically include devices based on filter criteria.
+                {% endif %}
+            </small>
+            {% if object.dynamic_group and perms.extras.change_dynamicgroup %}
+                <a href="{{ object.dynamic_group.get_absolute_url }}edit?return_url={{ object.get_absolute_url }}" class="btn btn-warning btn-xs pull-right">
+                    <span class="mdi mdi-pencil" aria-hidden="true"></span>
+                    Edit Dynamic Group
+                </a>
+            {% elif perms.nautobot_nvdatamodels.change_resourceblock %}
+                <a href="{% url 'plugins:nautobot_nvdatamodels:resourceblock_edit' pk=object.pk %}" class="btn btn-warning btn-xs pull-right">
+                    <span class="mdi mdi-pencil" aria-hidden="true"></span>
+                    Edit Resource Block
+                </a>
+            {% endif %}
+        </div>
+    </div>
+{% endblock content_right_page %}

@@ -1,0 +1,15 @@
+---
+extends: "default"
+rules:
+  comments: "enable"
+  empty-values: "disable"
+  indentation:
+    indent-sequences: "consistent"
+  line-length: "disable"
+  quoted-strings:
+    quote-type: "double"
+    required: false
+ignore: |
+  .venv/
+  compose.yaml
+  .uv-cache/

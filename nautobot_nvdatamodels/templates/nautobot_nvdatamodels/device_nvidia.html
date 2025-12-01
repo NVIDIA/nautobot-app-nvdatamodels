@@ -1,0 +1,65 @@
+{% load helpers %}
+
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <strong>NVIDIA</strong>
+    </div>
+    <table class="table table-hover panel-body attr-table">
+        <tr>
+            <td>NVLink Domain</td>
+            <td>
+                {% if object.nvlink_domain_membership %}
+                {{ object.nvlink_domain_membership.domain | hyperlinked_object }}
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+            </td>
+            <td class="text-right text-nowrap noprint">
+                {% if object.nvlink_domain_membership %}
+                <a href="{% url 'plugins:nautobot_nvdatamodels:nvlinkdomainmembership_edit' pk=object.nvlink_domain_membership.pk %}?return_url={{ object.get_absolute_url }}"
+                    class="btn btn-xs btn-warning" title="Edit domain membership">
+                    <i class="mdi mdi-pencil"></i>
+                </a>
+                <a href="{% url 'plugins:nautobot_nvdatamodels:nvlinkdomainmembership_delete' pk=object.nvlink_domain_membership.pk %}?return_url={{ object.get_absolute_url }}"
+                    class="btn btn-xs btn-danger" title="Remove from domain">
+                    <i class="mdi mdi-trash-can-outline"></i>
+                </a>
+                {% else %}
+                <a href="{% url 'plugins:nautobot_nvdatamodels:nvlinkdomainmembership_add' %}?member={{ object.pk }}&return_url={{ object.get_absolute_url }}"
+                    class="btn btn-primary btn-xs">
+                    <span class="mdi mdi-plus-thick" aria-hidden="true"></span>
+                    Add to NVLink domain
+                </a>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>Resource Block <i class="mdi mdi-information-outline mdi-18px text-muted" data-toggle="popover" title="This only shows direct resource block membership. The device may be a member of other resource blocks through dynamic groups." data-trigger="hover"></i></td>
+            <td>
+                {% if object.resource_block_membership %}
+                {{ object.resource_block_membership.resource_block | hyperlinked_object }}
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+            </td>
+            <td class="text-right text-nowrap noprint">
+                {% if object.resource_block_membership %}
+                <a href="{% url 'plugins:nautobot_nvdatamodels:resourceblockmembership_edit' pk=object.resource_block_membership.pk %}?return_url={{ object.get_absolute_url }}"
+                    class="btn btn-xs btn-warning" title="Edit resource block membership">
+                    <i class="mdi mdi-pencil"></i>
+                </a>
+                <a href="{% url 'plugins:nautobot_nvdatamodels:resourceblockmembership_delete' pk=object.resource_block_membership.pk %}?return_url={{ object.get_absolute_url }}"
+                    class="btn btn-xs btn-danger" title="Remove from resource block">
+                    <i class="mdi mdi-trash-can-outline"></i>
+                </a>
+                {% else %}
+                <a href="{% url 'plugins:nautobot_nvdatamodels:resourceblockmembership_add' %}?device={{ object.pk }}&return_url={{ object.get_absolute_url }}"
+                    class="btn btn-primary btn-xs">
+                    <span class="mdi mdi-plus-thick" aria-hidden="true"></span>
+                    Add to Resource Block
+                </a>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+</div>
