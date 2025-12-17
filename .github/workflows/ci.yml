@@ -21,14 +21,8 @@ jobs:
     steps:
       - name: "Check out repository"
         uses: "actions/checkout@v4"
-      - name: "Install uv"
-        uses: "astral-sh/setup-uv@v5"
-      - name: "Set up Python"
-        uses: "actions/setup-python@v5"
-        with:
-          python-version: "3.10"
       - name: "Setup environment"
-        run: uv sync --all-extras
+        uses: "./.github/actions/setup-environment"
       - name: "Linting: ruff"
         run: uv run invoke ruff
       - name: "Prune uv cache"
@@ -39,14 +33,8 @@ jobs:
     steps:
       - name: "Check out repository"
         uses: "actions/checkout@v4"
-      - name: "Install uv"
-        uses: "astral-sh/setup-uv@v5"
-      - name: "Set up Python"
-        uses: "actions/setup-python@v5"
-        with:
-          python-version: "3.10"
       - name: "Setup environment"
-        run: uv sync --all-extras
+        uses: "./.github/actions/setup-environment"
       - name: "Linting: yamllint"
         run: uv run invoke yamllint
       - name: "Prune uv cache"
@@ -57,14 +45,8 @@ jobs:
     steps:
       - name: "Check out repository"
         uses: "actions/checkout@v4"
-      - name: "Install uv"
-        uses: "astral-sh/setup-uv@v5"
-      - name: "Set up Python"
-        uses: "actions/setup-python@v5"
-        with:
-          python-version: "3.10"
       - name: "Setup environment"
-        run: uv sync --all-extras
+        uses: "./.github/actions/setup-environment"
       - name: "Check: uv lock"
         run: uv run invoke lock --check
       - name: "Prune uv cache"
@@ -81,14 +63,8 @@ jobs:
     steps:
       - name: "Check out repository"
         uses: "actions/checkout@v4"
-      - name: "Install uv"
-        uses: "astral-sh/setup-uv@v5"
-      - name: "Set up Python"
-        uses: "actions/setup-python@v5"
-        with:
-          python-version: "3.10"
       - name: "Setup environment"
-        run: uv sync --all-extras
+        uses: "./.github/actions/setup-environment"
       - name: "Check migrations"
         run: uv run invoke check-migrations
       - name: "Run unit tests"
