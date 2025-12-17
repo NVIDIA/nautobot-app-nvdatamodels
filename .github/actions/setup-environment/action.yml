@@ -23,4 +23,3 @@ runs:
     - name: "Generate creds file"
       run: cp development/creds.example.env development/creds.env
       shell: bash
-
