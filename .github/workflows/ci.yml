@@ -17,54 +17,36 @@ on:
 
 jobs:
   ruff:
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-latest"
     steps:
       - name: "Check out repository"
         uses: "actions/checkout@v4"
-      - name: "Install uv"
-        uses: "astral-sh/setup-uv@v5"
-      - name: "Set up Python"
-        uses: "actions/setup-python@v5"
-        with:
-          python-version: "3.10"
       - name: "Setup environment"
-        run: uv sync --all-extras
+        uses: "./.github/actions/setup-environment"
       - name: "Linting: ruff"
         run: uv run invoke ruff
       - name: "Prune uv cache"
         run: uv cache prune --ci
 
   yamllint:
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-latest"
     steps:
       - name: "Check out repository"
         uses: "actions/checkout@v4"
-      - name: "Install uv"
-        uses: "astral-sh/setup-uv@v5"
-      - name: "Set up Python"
-        uses: "actions/setup-python@v5"
-        with:
-          python-version: "3.10"
       - name: "Setup environment"
-        run: uv sync --all-extras
+        uses: "./.github/actions/setup-environment"
       - name: "Linting: yamllint"
         run: uv run invoke yamllint
       - name: "Prune uv cache"
         run: uv cache prune --ci
 
   uv-lock:
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-latest"
     steps:
       - name: "Check out repository"
         uses: "actions/checkout@v4"
-      - name: "Install uv"
-        uses: "astral-sh/setup-uv@v5"
-      - name: "Set up Python"
-        uses: "actions/setup-python@v5"
-        with:
-          python-version: "3.10"
       - name: "Setup environment"
-        run: uv sync --all-extras
+        uses: "./.github/actions/setup-environment"
       - name: "Check: uv lock"
         run: uv run invoke lock --check
       - name: "Prune uv cache"
@@ -75,24 +57,18 @@ jobs:
       - "ruff"
       - "yamllint"
       - "uv-lock"
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-latest"
     strategy:
       fail-fast: true
     steps:
       - name: "Check out repository"
         uses: "actions/checkout@v4"
-      - name: "Install uv"
-        uses: "astral-sh/setup-uv@v5"
-      - name: "Set up Python"
-        uses: "actions/setup-python@v5"
-        with:
-          python-version: "3.10"
       - name: "Setup environment"
-        run: uv sync --all-extras
+        uses: "./.github/actions/setup-environment"
       - name: "Check migrations"
         run: uv run invoke check-migrations
       - name: "Run unit tests"
-        run: uv run invoke unittest --failfast
+        run: uv run invoke unittest --failfast --coverage
       - name: "Run coverage"
         run: uv run invoke unittest-coverage
       - name: "Prune uv cache"
