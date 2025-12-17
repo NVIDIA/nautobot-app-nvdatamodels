@@ -68,7 +68,7 @@ jobs:
       - name: "Check migrations"
         run: uv run invoke check-migrations
       - name: "Run unit tests"
-        run: uv run invoke unittest --failfast
+        run: uv run invoke unittest --failfast --coverage
       - name: "Run coverage"
         run: uv run invoke unittest-coverage
       - name: "Prune uv cache"
