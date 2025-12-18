@@ -8,5 +8,5 @@ nautobot_nvdatamodels:
   compose_files:
     - "docker-compose.base.yml"
     - "docker-compose.redis.yml"
-    - "docker-compose.mysql.yml"
+    - "docker-compose.postgres.yml"
     - "docker-compose.dev.yml"
