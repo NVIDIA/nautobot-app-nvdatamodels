@@ -89,7 +89,7 @@ class NVLinkDomainMembership(BaseModel):
     """Models membership to NVLink Domains."""
 
     domain = models.ForeignKey(
-        NVLinkDomain, on_delete=models.CASCADE, related_name="nvlink_domain_membership"
+        NVLinkDomain, on_delete=models.CASCADE, related_name="nvlink_domain_memberships"
     )
     member = models.OneToOneField(
         "dcim.Device", on_delete=models.CASCADE, related_name="nvlink_domain_membership"

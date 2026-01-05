@@ -1,6 +1,6 @@
 [project]
 name = "nautobot-nvdatamodels"
-version = "0.16.1"
+version = "0.16.2"
 description = "A Nautobot app that provides tools for modeling NVIDIA products and resources, such as NVLink domains and compute clusters."
 authors = [
     {name = "Austin de Coup-Crank", email = "adecoupcrank@nvidia.com"},
