@@ -149,7 +149,7 @@ class NVLinkDomainTestCase(FormTestCases.BaseFormTestCase):
         )
         self.assertTrue(form.is_valid(), f"Form errors: {form.errors}")
         saved_domain = form.save()
-        self.assertTrue(saved_domain.nvlink_domain_membership.filter(member=test_device).exists())
+        self.assertTrue(saved_domain.nvlink_domain_memberships.filter(member=test_device).exists())
 
 
 class ResourceBlockTestCase(FormTestCases.BaseFormTestCase):

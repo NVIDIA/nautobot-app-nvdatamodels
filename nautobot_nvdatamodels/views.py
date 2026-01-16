@@ -99,11 +99,8 @@ class NVLinkDomainAddDevicesView(generic.ObjectEditView):
             device_pks = form.cleaned_data["devices"]
             with transaction.atomic():
                 # Assign the selected Devices to the NVLink Domain
-                for device in Device.objects.filter(pk__in=device_pks):
-                    models.NVLinkDomainMembership.objects.create(
-                        member=device,
-                        domain=nvlinkdomain,
-                    )
+                devices_to_add = Device.objects.filter(pk__in=device_pks)
+                nvlinkdomain.members.add(*devices_to_add)
 
             messages.success(
                 request,
@@ -139,8 +136,8 @@ class NVLinkDomainRemoveDevicesView(generic.ObjectEditView):
                 device_pks = form.cleaned_data["pk"]
                 with transaction.atomic():
                     # Remove the selected Devices from the NVLink Domain
-                    for device in Device.objects.filter(pk__in=device_pks):
-                        device.nvlink_domain_membership.delete()
+                    devices_to_remove = Device.objects.filter(pk__in=device_pks)
+                    nvlinkdomain.members.remove(*devices_to_remove)
 
                 messages.success(
                     request,

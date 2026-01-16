@@ -1,0 +1,25 @@
+---
+name: "Setup Environment"
+description: "Common setup steps for all CI jobs"
+
+inputs:
+  python-version:
+    description: "Python version to use"
+    required: false
+    default: "3.10"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Install uv"
+      uses: "astral-sh/setup-uv@v5"
+    - name: "Set up Python"
+      uses: "actions/setup-python@v5"
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: "Setup environment"
+      run: uv sync --all-extras
+      shell: bash
+    - name: "Generate creds file"
+      run: cp development/creds.example.env development/creds.env
+      shell: bash
