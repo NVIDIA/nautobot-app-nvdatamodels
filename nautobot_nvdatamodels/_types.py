@@ -16,4 +16,12 @@
 
 from typing import Literal
 
-NVLinkDomainTopology = Literal["gb200_nvl36r1_c2g4", "gb200_nvl72r2_c2g4", "gb200_nvl72r1_c2g4"]
+NVLinkDomainTopology = Literal[
+    "gb200_nvl36r1_c2g4",
+    "gb200_nvl72r2_c2g4",
+    "gb200_nvl72r1_c2g4",
+    "gb300_nvl36r1_c2g4",
+    "gb300_nvl36r2_c2g4",
+    "gb300_nvl72r1_c2g4",
+    "gb300_nvl72r2_c2g4",
+]

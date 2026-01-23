@@ -41,11 +41,19 @@ class NVLinkDomainTopologyChoices(ChoiceSet):
     GB200_NVL36R1_C2G4 = "gb200_nvl36r1_c2g4"
     GB200_NVL72R2_C2G4 = "gb200_nvl72r2_c2g4"
     GB200_NVL72R1_C2G4 = "gb200_nvl72r1_c2g4"
+    GB300_NVL36R1_C2G4 = "gb300_nvl36r1_c2g4"
+    GB300_NVL36R2_C2G4 = "gb300_nvl36r2_c2g4"
+    GB300_NVL72R1_C2G4 = "gb300_nvl72r1_c2g4"
+    GB300_NVL72R2_C2G4 = "gb300_nvl72r2_c2g4"
 
     CHOICES = (
         (GB200_NVL36R1_C2G4, "GB200 NVL36x1, single rack, 2U compute tray, 2x CPU / 4x GPU"),
         (GB200_NVL72R2_C2G4, "GB200 NVL36x2, dual rack, 2U compute tray, 2x CPU / 4x GPU"),
         (GB200_NVL72R1_C2G4, "GB200 NVL72x1, single rack, 1U compute tray, 2x CPU / 4x GPU"),
+        (GB300_NVL36R1_C2G4, "GB300 NVL36x1, single rack, 1U compute tray, 2x CPU / 4x GPU"),
+        (GB300_NVL36R2_C2G4, "GB300 NVL36x2, dual rack, 2U compute tray, 2x CPU / 4x GPU"),
+        (GB300_NVL72R1_C2G4, "GB300 NVL72x1, single rack, 1U compute tray, 2x CPU / 4x GPU"),
+        (GB300_NVL72R2_C2G4, "GB300 NVL72x2, dual rack, 2U compute tray, 2x CPU / 4x GPU"),
     )
 
 
@@ -55,6 +63,7 @@ class NVLinkDomainProtocolChoices(ChoiceSet):
     NVLINK_V2 = "nvlink_v2"
     NVLINK_V3 = "nvlink_v3"
     NVLINK_V5 = "nvlink_v5"
+    NVLINK_V6 = "nvlink_v6"
     NVLINK_BRIDGE = "nvlink_bridge"
     INFINIBAND = "infiniband"
     CPU_GPU = "cpu_gpu"
@@ -63,6 +72,7 @@ class NVLinkDomainProtocolChoices(ChoiceSet):
         (NVLINK_V2, "NVLink v2"),
         (NVLINK_V3, "NVLink v3"),
         (NVLINK_V5, "NVLink v5"),
+        (NVLINK_V6, "NVLink v6"),
         (NVLINK_BRIDGE, "NVLink Bridge"),
         (INFINIBAND, "InfiniBand"),
         (CPU_GPU, "NVLink CPU-GPU"),
