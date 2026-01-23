@@ -1,10 +1,11 @@
 [project]
 name = "nautobot-nvdatamodels"
-version = "0.16.3"
+version = "0.17.0"
 description = "A Nautobot app that provides tools for modeling NVIDIA products and resources, such as NVLink domains and compute clusters."
 authors = [
     {name = "Austin de Coup-Crank", email = "adecoupcrank@nvidia.com"},
-    {name = "Spencer Amann", email = "samann@nvidia.com"}
+    {name = "Spencer Amann", email = "samann@nvidia.com"},
+    {name = "Jon Carelli", email = "jcarelli@nvidia.com"}
 ]
 readme = "README.md"
 license = {text = "Apache-2.0"}
