@@ -15,7 +15,7 @@ This app provides the following models:
 
 Once the project is mature, installing this app will follow the standard process for installing any Nautobot app:
 
-1. Add `nautobot-app-nvdatamodels` to Nautobot's `pyproject.toml`
+1. Add `nautobot-nvdatamodels` to Nautobot's `pyproject.toml`
 1. Add `nautobot_nvdatamodels` to `PLUGINS` in `nautobot_config.py`
 
 Currently, there are no plugin configuration options to add to `PLUGINS_CONFIG` in `nautobot_config.py`.

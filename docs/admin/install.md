@@ -13,20 +13,20 @@ Refer to the [compatibility matrix](compatibility_matrix.md) for supported Nauto
 
 !!! note
 
-    You can install apps from the [Python Package Index](https://pypi.org/) or locally. See the [Nautobot documentation](https://docs.nautobot.com/projects/core/en/stable/user-guide/administration/installation/app-install/) for more details. The pip package name for NVDataModels is [`nautobot-app-nvdatamodels`](https://pypi.org/project/nautobot-app-nvdatamodels/).
+    You can install apps from the [Python Package Index](https://pypi.org/) or locally. See the [Nautobot documentation](https://docs.nautobot.com/projects/core/en/stable/user-guide/administration/installation/app-install/) for more details. The pip package name for NVDataModels is [`nautobot-nvdatamodels`](https://pypi.org/project/nautobot-nvdatamodels/).
 
 To install the NVDataModels app from the Python Package Index, follow these steps:
 
 1. Install the NVDataModels package using `pip`.
 
     ```sh
-    pip install nautobot-app-nvdatamodels
+    pip install nautobot-nvdatamodels
     ```
 
-1. To ensure NVDataModels is automatically re-installed during future upgrades, create a file named `local_requirements.txt` (if not already existing) in the Nautobot root directory (alongside `requirements.txt`) and list the `nautobot-app-nvdatamodels` package.
+1. To ensure NVDataModels is automatically re-installed during future upgrades, create a file named `local_requirements.txt` (if not already existing) in the Nautobot root directory (alongside `requirements.txt`) and list the `nautobot-nvdatamodels` package.
 
     ```sh
-    echo nautobot-app-nvdatamodels >> local_requirements.txt
+    echo nautobot-nvdatamodels >> local_requirements.txt
     ```
 
 1. Once installed, the NVDataModels app needs to be enabled in your Nautobot configuration. The following block of code shows the additional configuration required to be added to your `nautobot_config.py` file.
