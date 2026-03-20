@@ -13,5 +13,5 @@ Do the following to cleanly remove the NVDataModels app from your Nautobot envir
 1. Uninstall the package.
 
    ```sh
-   pip uninstall nautobot-app-nvdatamodels
+   pip uninstall nautobot-nvdatamodels
    ```
