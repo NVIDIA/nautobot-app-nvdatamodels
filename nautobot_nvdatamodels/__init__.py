@@ -28,13 +28,13 @@ class NautobotNVIDIAConfig(NautobotAppConfig):
     """App configuration for the nautobot_nvdatamodels app."""
 
     name = "nautobot_nvdatamodels"
-    verbose_name = "Nautobot NVIDIA DSX"
+    verbose_name = "Nautobot NVIDIA Data Models"
     version = __version__
     author = "Austin de Coup-Crank"
     author_email = "adecoupcrank@nvidia.com"
     description = (
-        "A Nautobot app that provides tools for modeling NVIDIA DSX products and resources, "
-        "such as NVLink domains and GPU clusters."
+        "A Nautobot app that provides tools for modeling NVIDIA data models, "
+        "such as NVLink domains and resource blocks."
     )
     base_url = "nvdatamodels"
     required_settings = []
