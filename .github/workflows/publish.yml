@@ -1,9 +1,9 @@
 ---
-name: "Build and publish app packages to PyPi"
+name: "Build and publish app packages with Kitmaker"
 
 concurrency:
-  group: publish
-  cancel-in-progress: true
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 on:
   push:
@@ -12,9 +12,10 @@ on:
   workflow_dispatch:
     inputs:
       skip_publish:
-        description: "True to skip publishing to PyPi when triggering manually"
+        description: "Only validate the package; do not publish it"
         required: true
         type: boolean
+        default: true
 
 jobs:
   build-packages:
@@ -42,22 +43,89 @@ jobs:
           name: "python-package-distributions"
           path: "dist/"
 
-  pypi-publish:
-    if: ${{ github.event_name == 'push' || ! inputs.skip_publish }}
+  release-policy:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    name: "Determine Kitmaker release mode"
+    runs-on: "ubuntu-latest"
+    outputs:
+      publish: ${{ steps.release-policy.outputs.publish }}
+    steps:
+      - name: "Check out repository history"
+        uses: "actions/checkout@v4"
+        with:
+          fetch-depth: 0
+      - name: "Set up Python for package metadata validation"
+        uses: "actions/setup-python@v5"
+        with:
+          python-version: "3.12"
+      - name: "Validate the tag and determine release mode"
+        id: "release-policy"
+        run: bash .github/scripts/determine-kitmaker-release-mode.sh main
+        env:
+          SKIP_PUBLISH: ${{ inputs.skip_publish }}
+
+  github-release:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     needs:
       - "build-packages"
-    name: "Pull the app package artifacts and publish them to PyPi"
+      - "release-policy"
+    name: "Publish packages as GitHub Release assets"
     runs-on: "ubuntu-latest"
-    environment:
-      name: "pypi"
-      url: "https://pypi.org/p/nautobot-nvdatamodels"
     permissions:
-      id-token: "write"
+      contents: "write"
     steps:
+      - name: "Check out repository"
+        uses: "actions/checkout@v4"
       - name: "Pull the saved distribution package artifacts"
         uses: "actions/download-artifact@v4"
         with:
           name: "python-package-distributions"
           path: "dist/"
-      - name: "Push packages to PyPi"
-        uses: "pypa/gh-action-pypi-publish@release/v1"
+      - name: "Publish GitHub Release assets"
+        run: bash .github/scripts/publish-github-release-assets.sh dist
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  kitmaker-check:
+    needs:
+      - "github-release"
+    name: "Validate wheels with Kitmaker"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Check out repository"
+        uses: "actions/checkout@v4"
+      - name: "Pull the saved distribution package artifacts"
+        uses: "actions/download-artifact@v4"
+        with:
+          name: "python-package-distributions"
+          path: "dist/"
+      - name: "Run Kitmaker checks without publishing"
+        run: bash .github/scripts/kitmaker-release.sh false dist
+        env:
+          KITMAKER_API_TOKEN: ${{ secrets.KITMAKER_API_TOKEN }}
+          KITMAKER_PIC_EMAIL: ${{ vars.KITMAKER_PIC_EMAIL }}
+          KITMAKER_PROJECT_ID: ${{ vars.KITMAKER_PROJECT_ID }}
+          KITMAKER_PROJECT_NAME: "nautobot-nvdatamodels"
+
+  kitmaker-publish:
+    if: ${{ needs.release-policy.outputs.publish == 'true' }}
+    needs:
+      - "kitmaker-check"
+      - "release-policy"
+    name: "Publish wheels with Kitmaker"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Check out repository"
+        uses: "actions/checkout@v4"
+      - name: "Pull the saved distribution package artifacts"
+        uses: "actions/download-artifact@v4"
+        with:
+          name: "python-package-distributions"
+          path: "dist/"
+      - name: "Publish with Kitmaker"
+        run: bash .github/scripts/kitmaker-release.sh true dist
+        env:
+          KITMAKER_API_TOKEN: ${{ secrets.KITMAKER_API_TOKEN }}
+          KITMAKER_PIC_EMAIL: ${{ vars.KITMAKER_PIC_EMAIL }}
+          KITMAKER_PROJECT_ID: ${{ vars.KITMAKER_PROJECT_ID }}
+          KITMAKER_PROJECT_NAME: "nautobot-nvdatamodels"
