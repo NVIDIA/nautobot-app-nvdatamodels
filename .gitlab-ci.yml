@@ -1,8 +1,8 @@
 ---
 workflow:
   rules:
-    # Temporary mirror diagnostic: create a pipeline for every ref update.
-    - when: always
+    - if: "$CI_COMMIT_TAG =~ /^v/"
+    - when: never
 
 stages:
   - prepare
@@ -24,18 +24,6 @@ variables:
     - apk add --no-cache bash curl git jq python3
   rules:
     - if: "$CI_COMMIT_TAG =~ /^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(rc[1-9][0-9]*)?$/"
-
-mirror-sync-smoke:
-  stage: prepare
-  tags:
-    - dca
-    - linux/amd64
-    - docker
-  image: "mirror.gcr.io/alpine:3.23"
-  rules:
-    - when: always
-  script:
-    - echo "GitLab CI triggered for ${CI_COMMIT_REF_NAME} from ${CI_PIPELINE_SOURCE}."
 
 release-policy:
   extends: ".kitmaker-job"
