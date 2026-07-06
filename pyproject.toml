@@ -1,6 +1,6 @@
 [project]
 name = "nautobot-nvdatamodels"
-version = "0.17.2"
+version = "0.17.3"
 description = "A Nautobot app that provides tools for modeling NVIDIA products and resources, such as NVLink domains and compute clusters."
 authors = [
     {name = "Austin de Coup-Crank", email = "adecoupcrank@nvidia.com"},
@@ -17,7 +17,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
 ]
 dependencies = [
     "nautobot>=2.4.20,<3.0.0",

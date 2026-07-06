@@ -1,20 +1,15 @@
 ---
-name: "Build and publish app packages to PyPi"
+name: "Build and publish GitHub Release packages"
 
 concurrency:
-  group: publish
-  cancel-in-progress: true
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 on:
   push:
     tags:
       - "v*"
   workflow_dispatch:
-    inputs:
-      skip_publish:
-        description: "True to skip publishing to PyPi when triggering manually"
-        required: true
-        type: boolean
 
 jobs:
   build-packages:
@@ -42,22 +37,40 @@ jobs:
           name: "python-package-distributions"
           path: "dist/"
 
-  pypi-publish:
-    if: ${{ github.event_name == 'push' || ! inputs.skip_publish }}
+  release-policy:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    name: "Validate release tag"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Check out repository history"
+        uses: "actions/checkout@v4"
+        with:
+          fetch-depth: 0
+      - name: "Set up Python for package metadata validation"
+        uses: "actions/setup-python@v5"
+        with:
+          python-version: "3.12"
+      - name: "Validate the release tag"
+        run: bash .github/scripts/validate-release-tag.sh main
+
+  github-release:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     needs:
       - "build-packages"
-    name: "Pull the app package artifacts and publish them to PyPi"
+      - "release-policy"
+    name: "Publish packages as GitHub Release assets"
     runs-on: "ubuntu-latest"
-    environment:
-      name: "pypi"
-      url: "https://pypi.org/p/nautobot-nvdatamodels"
     permissions:
-      id-token: "write"
+      contents: "write"
     steps:
+      - name: "Check out repository"
+        uses: "actions/checkout@v4"
       - name: "Pull the saved distribution package artifacts"
         uses: "actions/download-artifact@v4"
         with:
           name: "python-package-distributions"
           path: "dist/"
-      - name: "Push packages to PyPi"
-        uses: "pypa/gh-action-pypi-publish@release/v1"
+      - name: "Publish GitHub Release assets"
+        run: bash .github/scripts/publish-github-release-assets.sh dist
+        env:
+          GH_TOKEN: ${{ github.token }}

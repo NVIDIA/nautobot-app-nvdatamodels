@@ -85,4 +85,11 @@ Here are the guidelines you should follow:
 - Create your PR and request a review.
 - Your pull requests must pass all checks and peer-review before they can be merged.
 
+## PyPI Publishing
+
+Publication to PyPI is performed separately from the GitHub Actions release workflow.
+As a result, a delay between publication of the GitHub Release and availability of the corresponding distribution artifacts on PyPI is expected.
+Please allow up to one hour after the GitHub Release is published for the artifacts to appear on PyPI.
+If the artifacts are still unavailable after one hour, open a GitHub issue and include the release tag and a link to the GitHub Release.
+
 Thanks in advance for your patience as we review your contributions; we do appreciate them!
