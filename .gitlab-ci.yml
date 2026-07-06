@@ -1,8 +1,4 @@
 ---
-workflow:
-  rules:
-    # Temporary mirror diagnostic: create a pipeline for every ref update.
-    - when: always
 
 stages:
   - prepare
