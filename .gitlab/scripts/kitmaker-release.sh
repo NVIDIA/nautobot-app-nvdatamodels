@@ -109,7 +109,7 @@ while (( SECONDS < deadline )); do
             jq . "${response_file}" >&2
             exit 1
             ;;
-        pending|building)
+        pending|processing|building)
             sleep "${poll_interval}"
             ;;
         *)
