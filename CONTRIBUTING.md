@@ -87,9 +87,12 @@ Here are the guidelines you should follow:
 
 ## PyPI Publishing
 
-Publication to PyPI is performed separately from the GitHub Actions release workflow.
-As a result, a delay between publication of the GitHub Release and availability of the corresponding distribution artifacts on PyPI is expected.
-Please allow up to one hour after the GitHub Release is published for the artifacts to appear on PyPI.
-If the artifacts are still unavailable after one hour, open a GitHub issue and include the release tag and a link to the GitHub Release.
+Publication to PyPI is handled by the GitHub Actions `publish.yml` workflow through PyPI Trusted Publishing.
+
+Release-candidate tags use `X.Y.Z-rc.N` on commits that are not yet reachable from `main`. They build the distribution packages and publish them as GitHub prerelease assets, but skip PyPI upload.
+
+Stable release tags use `X.Y.Z` on commits that are reachable from `main`. They build the distribution packages, publish them as GitHub Release assets, and publish the same artifacts to PyPI.
+
+The `pyproject.toml` version remains in stable `X.Y.Z` format. The base version of both stable and release-candidate tags must match it.
 
 Thanks in advance for your patience as we review your contributions; we do appreciate them!

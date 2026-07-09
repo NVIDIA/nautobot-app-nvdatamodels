@@ -20,7 +20,7 @@ fi
 
 expected_prerelease="false"
 release_options=(--generate-notes --title "${tag}" --verify-tag)
-if [[ "${tag}" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)rc([1-9][0-9]*)$ ]]; then
+if [[ "${tag}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-rc\.([1-9][0-9]*)$ ]]; then
     expected_prerelease="true"
     release_options+=(--prerelease)
 fi
@@ -53,5 +53,6 @@ for asset in "${assets[@]}"; do
         continue
     fi
 
+    # Add missing assets to recover from partial release creation; existing assets are compared above and never overwritten.
     gh release upload "${tag}" "${asset}"
 done

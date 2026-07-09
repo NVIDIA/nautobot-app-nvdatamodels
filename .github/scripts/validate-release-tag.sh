@@ -9,7 +9,7 @@ release_branch="${1:-main}"
 : "${GITHUB_SHA:?GITHUB_SHA must be set}"
 
 if [[ "${GITHUB_REF_TYPE}" != "tag" ]]; then
-    echo "Kitmaker release mode can only be determined for a tag." >&2
+    echo "Release policy can only be determined for a tag." >&2
     exit 1
 fi
 
@@ -22,16 +22,15 @@ if git merge-base --is-ancestor "${GITHUB_SHA}" "origin/${release_branch}"; then
 fi
 
 version_component='(0|[1-9][0-9]*)'
-stable_tag_pattern="^v${version_component}\\.${version_component}\\.${version_component}$"
-release_candidate_tag_pattern="^v${version_component}\\.${version_component}\\.${version_component}rc([1-9][0-9]*)$"
+stable_tag_pattern="^${version_component}\\.${version_component}\\.${version_component}$"
+release_candidate_tag_pattern="^${version_component}\\.${version_component}\\.${version_component}-rc\\.([1-9][0-9]*)$"
 
-if [[ "${commit_on_release_branch}" == "true" ]]; then
-    if [[ ! "${GITHUB_REF_NAME}" =~ ${stable_tag_pattern} ]]; then
-        echo "A tag reachable from ${release_branch} must use the exact stable format vX.Y.Z." >&2
-        exit 1
-    fi
-elif [[ ! "${GITHUB_REF_NAME}" =~ ${release_candidate_tag_pattern} ]]; then
-    echo "An off-${release_branch} tag must use the exact release candidate format vX.Y.ZrcN." >&2
+if [[ "${GITHUB_REF_NAME}" =~ ${stable_tag_pattern} ]]; then
+    tag_kind="stable"
+elif [[ "${GITHUB_REF_NAME}" =~ ${release_candidate_tag_pattern} ]]; then
+    tag_kind="release-candidate"
+else
+    echo "Release tags must use X.Y.Z or X.Y.Z-rc.N." >&2
     exit 1
 fi
 
@@ -41,8 +40,8 @@ project_version="$(
         'import sys, tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["project"]["version"])' \
         "${repository_root}/pyproject.toml"
 )"
-tag_version="${GITHUB_REF_NAME#v}"
-tag_base_version="${tag_version%%rc*}"
+tag_version="${GITHUB_REF_NAME}"
+tag_base_version="${tag_version%%-rc.*}"
 project_version_pattern="^${version_component}\\.${version_component}\\.${version_component}$"
 
 if [[ ! "${project_version}" =~ ${project_version_pattern} ]]; then
@@ -55,5 +54,24 @@ if [[ "${tag_base_version}" != "${project_version}" ]]; then
     exit 1
 fi
 
+if [[ "${commit_on_release_branch}" == "true" ]]; then
+    if [[ "${tag_kind}" != "stable" ]]; then
+        echo "A tag reachable from ${release_branch} must use the stable format X.Y.Z." >&2
+        exit 1
+    fi
+    pypi_publish="true"
+else
+    if [[ "${tag_kind}" != "release-candidate" ]]; then
+        echo "A tag not reachable from ${release_branch} must use the release candidate format X.Y.Z-rc.N." >&2
+        exit 1
+    fi
+    pypi_publish="false"
+fi
+
+if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+    echo "pypi_publish=${pypi_publish}" >>"${GITHUB_OUTPUT}"
+fi
+
 echo "Tagged commit reachable from ${release_branch}: ${commit_on_release_branch}"
 echo "Validated release tag: ${GITHUB_REF_NAME}"
+echo "Publish to PyPI: ${pypi_publish}"
