@@ -1,0 +1,47 @@
+---
+name: "CI"
+description: "Common CI checks for Nautobot NV Data Models"
+
+inputs:
+  python-version:
+    description: "Python version to use"
+    required: false
+    default: "3.12"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Setup environment"
+      uses: "./.github/actions/setup-environment"
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: "Linting: ruff"
+      shell: "bash"
+      run: uv run invoke ruff
+      env:
+        INVOKE_CONTEXT_LOCAL: "true"
+
+    - name: "Linting: yamllint"
+      shell: "bash"
+      run: uv run invoke yamllint
+      env:
+        INVOKE_CONTEXT_LOCAL: "true"
+
+    - name: "Check: uv lock"
+      shell: "bash"
+      run: uv run invoke lock --check
+      env:
+        INVOKE_CONTEXT_LOCAL: "true"
+
+    - name: "Check migrations"
+      shell: "bash"
+      run: uv run invoke check-migrations
+
+    - name: "Run unit tests"
+      shell: "bash"
+      run: uv run invoke unittest --failfast --coverage
+
+    - name: "Run coverage"
+      shell: "bash"
+      run: uv run invoke unittest-coverage
