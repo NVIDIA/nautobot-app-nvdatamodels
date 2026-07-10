@@ -85,4 +85,14 @@ Here are the guidelines you should follow:
 - Create your PR and request a review.
 - Your pull requests must pass all checks and peer-review before they can be merged.
 
+## PyPI Publishing
+
+Publication to PyPI is handled by the GitHub Actions `publish.yml` workflow through PyPI Trusted Publishing.
+
+Release-candidate tags use `X.Y.Z-rc.N` on commits that are not yet reachable from `main`. They build the distribution packages and publish them as GitHub prerelease assets, but skip PyPI upload.
+
+Stable release tags use `X.Y.Z` on commits that are reachable from `main`. They build the distribution packages, publish them as GitHub Release assets, and publish the same artifacts to PyPI.
+
+The `pyproject.toml` version remains in stable `X.Y.Z` format. The base version of both stable and release-candidate tags must match it.
+
 Thanks in advance for your patience as we review your contributions; we do appreciate them!
