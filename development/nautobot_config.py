@@ -6,6 +6,14 @@ import sys
 from nautobot.core.settings import *  # noqa: F403  # pylint: disable=wildcard-import,unused-wildcard-import
 from nautobot.core.settings_funcs import is_truthy
 
+
+def _get_required_env(name):
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"{name} must be set")
+    return value
+
+
 #
 # Debug
 #
@@ -26,7 +34,7 @@ if DEBUG and not _TESTING:
 #
 
 ALLOWED_HOSTS = os.getenv("NAUTOBOT_ALLOWED_HOSTS", "").split(" ")
-SECRET_KEY = os.getenv("NAUTOBOT_SECRET_KEY", "")
+SECRET_KEY = _get_required_env("NAUTOBOT_SECRET_KEY")
 
 #
 # Database
