@@ -12,7 +12,7 @@ ARG NAUTOBOT_ROOT=/opt/nautobot
 ENV NAUTOBOT_ROOT=${NAUTOBOT_ROOT}
 
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install uv==0.6.10 --root-user-action=ignore
+    pip install "uv==0.9.8" --root-user-action=ignore
 
 WORKDIR /source
 
