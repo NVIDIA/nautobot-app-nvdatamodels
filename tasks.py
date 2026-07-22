@@ -17,6 +17,7 @@
 
 import os
 import re
+import shlex
 import sys
 from pathlib import Path
 from time import sleep
@@ -28,6 +29,8 @@ from invoke.tasks import task as invoke_task
 # These values will be overridden by env vars if they are set.
 DEFAULT_NAUTOBOT_VER = "2.4.5"  # NAUTOBOT_VER
 DEFAULT_PYTHON_VER = "3.11"  # PYTHON_VER
+DB_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_]+$")
+COMPOSE_SERVICE_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
 def load_env_files() -> bool:
@@ -132,9 +135,26 @@ def _is_compose_included(context, name):
     return f"docker-compose.{name}.yml" in context.nautobot_nvdatamodels.compose_files
 
 
+def _quote(value):
+    return shlex.quote(str(value))
+
+
+def _validate_db_name(db_name):
+    if db_name and not DB_NAME_PATTERN.match(str(db_name)):
+        raise ValueError("Invalid database name")
+    return str(db_name) if db_name else db_name
+
+
+def _validate_compose_service(service):
+    if service and not COMPOSE_SERVICE_PATTERN.match(str(service)):
+        raise ValueError("Invalid Docker Compose service name")
+    return str(service) if service else service
+
+
 def _await_healthy_service(context, service):
+    service = _validate_compose_service(service)
     container_id = docker_compose(
-        context, f"ps -q -- {service}", pty=False, echo=False, hide=True
+        context, f"ps -q -- {_quote(service)}", pty=False, echo=False, hide=True
     ).stdout.strip()
     _await_healthy_container(context, container_id)
 
@@ -190,20 +210,20 @@ def docker_compose(context, command, **kwargs):
     }
     compose_command_tokens = [
         "docker compose",
-        f"--project-name {context.nautobot_nvdatamodels.project_name}",
-        f'--project-directory "{context.nautobot_nvdatamodels.compose_dir}"',
+        f"--project-name {_quote(context.nautobot_nvdatamodels.project_name)}",
+        f"--project-directory {_quote(context.nautobot_nvdatamodels.compose_dir)}",
     ]
 
     for compose_file in context.nautobot_nvdatamodels.compose_files:
         compose_file_path = os.path.join(context.nautobot_nvdatamodels.compose_dir, compose_file)
-        compose_command_tokens.append(f' -f "{compose_file_path}"')
+        compose_command_tokens.append(f" -f {_quote(compose_file_path)}")
 
     compose_command_tokens.append(command)
 
     # If `service` was passed as a kwarg, add it to the end.
     service = kwargs.pop("service", None)
-    if service is not None:
-        compose_command_tokens.append(service)
+    if service:
+        compose_command_tokens.append(_quote(_validate_compose_service(service)))
 
     print(f'Running docker compose command "{command}"')
     compose_command = " ".join(compose_command_tokens)
@@ -222,6 +242,8 @@ def run_command(context, command, service="nautobot", **kwargs):
         return context.run(command, **kwargs)
     else:
         # Check if service is running, no need to start another container to run a command
+        service = _validate_compose_service(service)
+        quoted_service = _quote(service)
         docker_compose_status = "ps --services --filter status=running"
         results = docker_compose(context, docker_compose_status, hide="out")
 
@@ -229,10 +251,10 @@ def run_command(context, command, service="nautobot", **kwargs):
         if "command_env" in kwargs:
             command_env = kwargs.pop("command_env")
             for key, value in command_env.items():
-                command_env_args += f' --env="{key}={value}"'
+                command_env_args += f' --env="{_quote(key)}={_quote(value)}"'
 
         if service in results.stdout:
-            compose_command = f"exec{command_env_args} {service} {command}"
+            compose_command = f"run{command_env_args} --rm {quoted_service} {command}"
         else:
             compose_command = f"run{command_env_args} --rm --entrypoint='{command}' {service}"
 
@@ -278,11 +300,13 @@ def _get_docker_nautobot_version(context, nautobot_ver=None, python_ver=None):
         python_ver = context.nautobot_nvdatamodels.python_ver
     dockerfile_path = os.path.join(context.nautobot_nvdatamodels.compose_dir, "Dockerfile")
     base_image = (
-        context.run(f"grep --max-count=1 '^FROM ' {dockerfile_path}", hide=True).stdout.strip().split(" ")[1]
+        context.run(f"grep --max-count=1 '^FROM ' {_quote(dockerfile_path)}", hide=True)
+        .stdout.strip()
+        .split(" ")[1]
     )
     base_image = base_image.replace(r"${NAUTOBOT_VER}", nautobot_ver).replace(r"${PYTHON_VER}", python_ver)
     pip_nautobot_ver = context.run(
-        f"docker run --rm --entrypoint '' {base_image} pip show nautobot", hide=True
+        f"docker run --rm --entrypoint '' {_quote(base_image)} pip show nautobot", hide=True
     )
     match_version = re.search(r"^Version: (.+)$", pip_nautobot_ver.stdout.strip(), flags=re.MULTILINE)
     if match_version:
@@ -313,9 +337,9 @@ def lock(context, check=False, constrain_nautobot_ver=False, constrain_python_ve
     """Generate uv.lock file."""
     if constrain_nautobot_ver:
         docker_nautobot_version = _get_docker_nautobot_version(context)
-        command = f"uv add --lock nautobot@{docker_nautobot_version}"
+        command = f"uv add --lock {_quote(f'nautobot@{docker_nautobot_version}')}"
         if constrain_python_ver:
-            command += f" --python {context.nautobot_nvdatamodels.python_ver}"
+            command += f" --python {_quote(context.nautobot_nvdatamodels.python_ver)}"
         try:
             run_command(context, command, hide=True)
             output = run_command(context, command, hide=True)
@@ -323,9 +347,12 @@ def lock(context, check=False, constrain_nautobot_ver=False, constrain_python_ve
             print(output.stderr, file=sys.stderr, end="")
         except UnexpectedExit:
             print("Unable to add Nautobot dependency with version constraint, falling back to git branch.")
-            command = f"uv add --lock git+https://github.com/nautobot/nautobot.git#{context.nautobot_nvdatamodels.nautobot_ver}"
+            command = (
+                "uv add --lock "
+                f"{_quote(f'git+https://github.com/nautobot/nautobot.git#{context.nautobot_nvdatamodels.nautobot_ver}')}"
+            )
             if constrain_python_ver:
-                command += f" --python {context.nautobot_nvdatamodels.python_ver}"
+                command += f" --python {_quote(context.nautobot_nvdatamodels.python_ver)}"
             run_command(context, command)
     else:
         command = f"uv lock {'--check' if check else '--no-upgrade'}"
@@ -391,7 +418,7 @@ def destroy(context, volumes=True, import_db_file=""):
         "run",
         "--rm",
         "--detach",
-        f"--volume='{input_path}:/docker-entrypoint-initdb.d/dump.sql'",
+        f"--volume={_quote(f'{input_path}:/docker-entrypoint-initdb.d/dump.sql')}",
         "--",
         "db",
     ]
@@ -399,7 +426,7 @@ def destroy(context, volumes=True, import_db_file=""):
     container_id = docker_compose(context, " ".join(command), pty=False, echo=False, hide=True).stdout.strip()
     _await_healthy_container(context, container_id)
     print("Stopping database container...")
-    context.run(f"docker stop {container_id}", pty=False, echo=False, hide=True)
+    context.run(f"docker stop {_quote(container_id)}", pty=False, echo=False, hide=True)
 
     print("Database import complete, you can start Nautobot with the following command:")
     print("invoke start")
@@ -445,7 +472,7 @@ def logs(context, service="", follow=False, tail=0):
     if follow:
         command += "--follow "
     if tail:
-        command += f"--tail={tail} "
+        command += f"--tail={int(tail)} "
 
     docker_compose(context, command, service=service)
 
@@ -458,7 +485,7 @@ def logs(context, service="", follow=False, tail=0):
 )
 def rerun_job(context, job_result_id, local=False):
     """Rerun a job by job result UUID."""
-    command = f"nautobot-server rerun_job -j {job_result_id}{' --local' if local else ''}"
+    command = f"nautobot-server rerun_job -j {_quote(job_result_id)}{' --local' if local else ''}"
     print(f"Running command: {command}")
     run_command(context, command)
 
@@ -474,7 +501,7 @@ def enable_jobs(context, name=None):
     command = "nautobot-server enable_jobs"
     if name:
         for job_name in name:
-            command += f" --job-name {job_name}"
+            command += f" --job-name {_quote(job_name)}"
     run_command(context, command)
 
 
@@ -494,7 +521,7 @@ def nbshell(context, file="", env={}, plain=False):
         "nautobot-server",
         "nbshell",
         "--plain" if plain else "",
-        f"< '{file}'" if file else "",
+        f"< {_quote(file)}" if file else "",
     ]
     run_command(context, " ".join(command), pty=not bool(file), command_env=env)
 
@@ -523,7 +550,7 @@ def cli(context, service="nautobot"):
 )
 def createsuperuser(context, user="admin"):
     """Create a new Nautobot superuser account (default: "admin"), will prompt for password."""
-    command = f"nautobot-server createsuperuser --username {user}"
+    command = f"nautobot-server createsuperuser --username {_quote(user)}"
 
     run_command(context, command)
 
@@ -538,7 +565,7 @@ def makemigrations(context, name=""):
     command = "nautobot-server makemigrations nautobot_nvdatamodels"
 
     if name:
-        command += f" --name {name}"
+        command += f" --name {_quote(name)}"
 
     run_command(context, command)
 
@@ -582,9 +609,9 @@ def exec(context, service="nautobot", command="bash", file=""):
     command = [
         "exec",
         "--",
-        service,
+        _quote(_validate_compose_service(service)),
         command,
-        f"< '{file}'" if file else "",
+        f"< {_quote(file)}" if file else "",
     ]
     docker_compose(context, " ".join(command), pty=not bool(file))
 
@@ -602,6 +629,7 @@ def dbshell(context, db_name="", input_file="", output_file="", query=""):
 
     Doesn't use `nautobot-server dbshell`, using started `db` service container only.
     """
+    db_name = _validate_db_name(db_name)
     if input_file and query:
         raise ValueError("Cannot specify both, `input_file` and `query` arguments")
     if output_file and not (input_file or query):
@@ -636,8 +664,8 @@ def dbshell(context, db_name="", input_file="", output_file="", query=""):
     command += [
         "'",
         '<<<"$_SQL_QUERY"' if query else "",
-        f"< '{input_file}'" if input_file else "",
-        f"> '{output_file}'" if output_file else "",
+        f"< {_quote(input_file)}" if input_file else "",
+        f"> {_quote(output_file)}" if output_file else "",
     ]
 
     docker_compose(context, " ".join(command), env=env, pty=not (input_file or output_file or query))
@@ -651,6 +679,7 @@ def dbshell(context, db_name="", input_file="", output_file="", query=""):
 )
 def import_db(context, db_name="", input_file="dump.sql"):
     """Stop Nautobot containers and replace the current database with the dump into `db` container."""
+    db_name = _validate_db_name(db_name)
     docker_compose(context, "stop -- nautobot worker beat")
     start(context, "db")
     _await_healthy_service(context, "db")
@@ -690,7 +719,7 @@ def import_db(context, db_name="", input_file="dump.sql"):
 
     command += [
         "'",
-        f"< '{input_file}'",
+        f"< {_quote(input_file)}",
     ]
 
     docker_compose(context, " ".join(command), pty=False)
@@ -707,6 +736,7 @@ def import_db(context, db_name="", input_file="dump.sql"):
 )
 def backup_db(context, db_name="", output_file="dump.sql", readable=True):
     """Dump database into `output_file` file from `db` container."""
+    db_name = _validate_db_name(db_name)
     start(context, "db")
     _await_healthy_service(context, "db")
 
@@ -732,7 +762,7 @@ def backup_db(context, db_name="", output_file="dump.sql", readable=True):
 
     command += [
         "'",
-        f"> '{output_file}'",
+        f"> {_quote(output_file)}",
     ]
 
     docker_compose(context, " ".join(command), pty=False)
@@ -741,7 +771,7 @@ def backup_db(context, db_name="", output_file="dump.sql", readable=True):
     print("The database backup has been successfully completed and saved to the following file:")
     print(output_file)
     print("You can import this database backup with the following command:")
-    print(f"invoke import-db --input-file '{output_file}'")
+    print(f"invoke import-db --input-file {_quote(output_file)}")
     print(50 * "=")
 
 
@@ -848,7 +878,7 @@ def ruff(context, action=None, target=None, fix=False, output_format="concise"):
         command = "ruff format "
         if not fix:
             command += "--check "
-        command += " ".join(target)
+        command += " ".join(_quote(target_name) for target_name in target)
         if not run_command(context, command, warn=True):
             exit_code = 1
 
@@ -856,8 +886,8 @@ def ruff(context, action=None, target=None, fix=False, output_format="concise"):
         command = "ruff check "
         if fix:
             command += "--fix "
-        command += f"--output-format {output_format} "
-        command += " ".join(target)
+        command += f"--output-format {_quote(output_format)} "
+        command += " ".join(_quote(target_name) for target_name in target)
         if not run_command(context, command, warn=True):
             exit_code = 1
 
@@ -907,9 +937,9 @@ def unittest(  # noqa: PLR0913
 ):
     """Run Nautobot unit tests."""
     if coverage:
-        command = f"coverage run --module nautobot.core.cli test {label}"
+        command = f"coverage run --module nautobot.core.cli test {_quote(label)}"
     else:
-        command = f"nautobot-server test {label}"
+        command = f"nautobot-server test {_quote(label)}"
 
     if keepdb:
         command += " --keepdb"
@@ -918,7 +948,7 @@ def unittest(  # noqa: PLR0913
     if buffer:
         command += " --buffer"
     if pattern:
-        command += f" -k='{pattern}'"
+        command += f" -k={_quote(pattern)}"
     if verbose:
         command += " --verbosity 2"
 
