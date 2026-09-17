@@ -55,3 +55,29 @@ def create_default_resource_block_statuses(**kwargs):
     for status_name, color in color_mapping:
         status, _ = Status.objects.get_or_create(name=status_name, defaults={"color": color})
         status.content_types.add(content_type)
+
+
+@receiver(nautobot_database_ready, sender=apps.get_app_config("nautobot_nvdatamodels"))
+def provision_lpu_c2c_records(sender, *, apps, **kwargs):
+    """Provision Nautobot records required by LPU C2C domains."""
+    content_type_model = apps.get_model("contenttypes", "ContentType")
+    role_model = apps.get_model("extras", "Role")
+    status_model = apps.get_model("extras", "Status")
+    device_model = apps.get_model("dcim", "Device")
+    domain_model = apps.get_model("nautobot_nvdatamodels", "LPUC2CDomain")
+
+    device_content_type = content_type_model.objects.get_for_model(device_model)
+    domain_content_type = content_type_model.objects.get_for_model(domain_model)
+
+    role, _ = role_model.objects.get_or_create(name="LPU Tray", defaults={"color": ColorChoices.COLOR_GREY})
+    role.content_types.add(device_content_type)
+
+    for name, color in (
+        ("Planned", ColorChoices.COLOR_GREY),
+        ("Active", ColorChoices.COLOR_GREEN),
+        ("Maintenance", ColorChoices.COLOR_YELLOW),
+        ("Offline", ColorChoices.COLOR_GREY),
+        ("Decommissioned", ColorChoices.COLOR_RED),
+    ):
+        status, _ = status_model.objects.get_or_create(name=name, defaults={"color": color})
+        status.content_types.add(domain_content_type)

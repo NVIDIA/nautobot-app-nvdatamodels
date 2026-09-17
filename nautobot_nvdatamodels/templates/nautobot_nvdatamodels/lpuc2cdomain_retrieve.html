@@ -1,0 +1,56 @@
+{% extends 'generic/object_retrieve.html' %}
+{% load helpers %}
+{% load django_tables2 %}
+
+{% block content_left_page %}
+<div class="panel panel-default">
+    <div class="panel-heading"><strong>LPU C2C Domain</strong></div>
+    <table class="table table-hover panel-body attr-table">
+        <tr><td>Name</td><td>{{ object.name }}</td></tr>
+        <tr><td>Status</td><td>{{ object.status|hyperlinked_object_with_color }}</td></tr>
+        <tr><td>Topology</td><td>{{ object.get_topology_display }}</td></tr>
+        <tr><td>Location</td><td>{{ object.location|hyperlinked_object }}</td></tr>
+        {% include 'inc/tenant_table_row.html' %}
+        <tr><td>Projection state</td><td><strong>{{ evaluation_state }}</strong></td></tr>
+    </table>
+</div>
+
+<div class="panel panel-default">
+    <div class="panel-heading"><strong>Rack positions</strong></div>
+    {% render_table rack_position_table %}
+    {% if can_change_domain %}
+    <div class="panel-footer text-right noprint">
+        <a class="btn btn-primary btn-sm" href="{% url 'plugins:nautobot_nvdatamodels:lpuc2cdomain_rack_operation' pk=object.pk %}">
+            Manage rack positions
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock content_left_page %}
+
+{% block content_right_page %}
+<div class="panel panel-default">
+    <div class="panel-heading"><strong>Evaluated endpoints</strong></div>
+    {% render_table endpoint_table %}
+</div>
+
+<div class="panel panel-default">
+    <div class="panel-heading"><strong>Diagnostics</strong></div>
+    <div class="table-responsive">
+        <table class="table table-hover panel-body">
+            <thead><tr><th>Severity</th><th>Code</th><th>Message</th></tr></thead>
+            <tbody>
+                {% for diagnostic in diagnostics %}
+                <tr>
+                    <td>{{ diagnostic.severity }}</td>
+                    <td><code>{{ diagnostic.code }}</code></td>
+                    <td>{{ diagnostic.message }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-muted">No diagnostics</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock content_right_page %}

@@ -184,3 +184,87 @@ class ResourceBlockMembershipTable(BaseTable):
             "resource_block",
             "device",
         )
+
+
+class LPUC2CDomainTable(StatusTableMixin, BaseTable):
+    """Normal list table for stored LPU C2C Domain records."""
+
+    pk = ToggleColumn()
+    name = tables.Column(linkify=True)
+    topology = tables.Column()
+    location = tables.Column(linkify=True)
+    tenant = tables.Column(linkify=True)
+    tags = TagColumn(url_name="plugins:nautobot_nvdatamodels:lpuc2cdomain_list")
+    actions = ButtonsColumn(models.LPUC2CDomain)
+
+    class Meta(BaseTable.Meta):
+        """Table metadata."""
+
+        model = models.LPUC2CDomain
+        fields = (
+            "pk",
+            "name",
+            "status",
+            "topology",
+            "location",
+            "tenant",
+            "tags",
+            "actions",
+        )
+        default_columns = (
+            "pk",
+            "name",
+            "status",
+            "topology",
+            "location",
+            "tenant",
+            "actions",
+        )
+
+
+class LPUC2CRackPositionProjectionTable(tables.Table):
+    """Read-only table over evaluated rack-position projection rows."""
+
+    ordinal = tables.Column()
+    rack = tables.TemplateColumn(
+        template_code="""
+        {% load helpers %}
+        {% if record.rack %}{{ record.rack|hyperlinked_object }}{% else %}Vacant{% endif %}
+        """,
+        orderable=False,
+    )
+
+    class Meta:
+        """Projection rows deliberately have no stored membership model."""
+
+        fields = (
+            "ordinal",
+            "rack",
+        )
+        attrs = {"class": "table table-hover"}
+
+
+class LPUC2CEndpointProjectionTable(tables.Table):
+    """Read-only table over evaluated endpoint projection rows."""
+
+    device = tables.Column(linkify=True)
+    coordinate_display = tables.Column(verbose_name="Coordinate")
+    actions = tables.TemplateColumn(
+        template_code="""
+        {% if record.can_change_domain %}
+        <a class="btn btn-warning btn-xs"
+           href="{% url 'plugins:nautobot_nvdatamodels:lpuc2c_endpoint_configuration' pk=record.device.pk %}?return_url={{ record.return_url|urlencode }}"
+           title="Configure LPU C2C endpoint for {{ record.device }}">
+            Configure
+        </a>
+        {% endif %}
+        """,
+        orderable=False,
+        attrs={"td": {"class": "text-right noprint"}, "th": {"class": "noprint"}},
+    )
+
+    class Meta:
+        """Projection rows deliberately have no stored membership model."""
+
+        fields = ("device", "coordinate_display", "actions")
+        attrs = {"class": "table table-hover"}

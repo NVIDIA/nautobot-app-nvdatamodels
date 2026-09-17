@@ -17,7 +17,7 @@
 from nautobot.apps.filters import NameSearchFilterSet, NaturalKeyOrPKMultipleChoiceFilter, NautobotFilterSet
 from nautobot.core.filters import SearchFilter, TreeNodeMultipleChoiceFilter
 from nautobot.dcim.filters.mixins import LocatableModelFilterSetMixin
-from nautobot.dcim.models import Device, Rack, RackGroup
+from nautobot.dcim.models import Device, DeviceType, Rack, RackGroup
 from nautobot.extras.filters import RoleModelFilterSetMixin, StatusModelFilterSetMixin
 from nautobot.tenancy.filters.mixins import TenancyModelFilterSetMixin
 
@@ -137,4 +137,79 @@ class ResourceBlockMembershipFilterSet(NautobotFilterSet, NameSearchFilterSet): 
         """Meta attributes for filter."""
 
         model = models.ResourceBlockMembership
+        fields = "__all__"
+
+
+class LPUC2CDomainFilterSet(
+    NautobotFilterSet,
+    LocatableModelFilterSetMixin,
+    TenancyModelFilterSetMixin,
+    StatusModelFilterSetMixin,
+    NameSearchFilterSet,
+):  # pylint: disable=too-many-ancestors
+    """Filter normalized LPU C2C domains."""
+
+    q = SearchFilter(filter_predicates={"name": "icontains"})
+
+    class Meta:
+        """Meta attributes for filter."""
+
+        model = models.LPUC2CDomain
+        fields = "__all__"
+
+
+class LPUC2CDomainRackPositionFilterSet(NautobotFilterSet):
+    """Filter LPU C2C rack positions."""
+
+    domain = NaturalKeyOrPKMultipleChoiceFilter(
+        queryset=models.LPUC2CDomain.objects.all(),
+        to_field_name="name",
+        label="Domain (name or ID)",
+    )
+    rack = NaturalKeyOrPKMultipleChoiceFilter(
+        queryset=Rack.objects.all(),
+        to_field_name="name",
+        label="Rack (name or ID)",
+    )
+
+    class Meta:
+        """Meta attributes for filter."""
+
+        model = models.LPUC2CDomainRackPosition
+        fields = "__all__"
+
+
+class LPUC2CDeviceTypeCompatibilityFilterSet(NautobotFilterSet):
+    """Filter LPU C2C device-type compatibility records."""
+
+    device_type = NaturalKeyOrPKMultipleChoiceFilter(
+        queryset=DeviceType.objects.all(),
+        to_field_name="model",
+        label="Device type (model or ID)",
+    )
+
+    class Meta:
+        """Meta attributes for filter."""
+
+        model = models.LPUC2CDeviceTypeCompatibility
+        fields = "__all__"
+
+
+class LPUC2CEndpointConfigurationFilterSet(NautobotFilterSet):
+    """Filter LPU C2C endpoint configuration records."""
+
+    device = NaturalKeyOrPKMultipleChoiceFilter(
+        queryset=Device.objects.all(),
+        to_field_name="name",
+        label="Device (name or ID)",
+    )
+    rack_position = NaturalKeyOrPKMultipleChoiceFilter(
+        queryset=models.LPUC2CDomainRackPosition.objects.all(),
+        label="Rack position (ID)",
+    )
+
+    class Meta:
+        """Meta attributes for filter."""
+
+        model = models.LPUC2CEndpointConfiguration
         fields = "__all__"

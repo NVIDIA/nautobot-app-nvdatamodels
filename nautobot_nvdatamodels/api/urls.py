@@ -23,5 +23,21 @@ router.register("nvlink-domains", views.NVLinkDomainViewSet)
 router.register("nvlink-domain-memberships", views.NVLinkDomainMembershipViewSet)
 router.register("resource-blocks", views.ResourceBlockViewSet)
 router.register("resource-block-memberships", views.ResourceBlockMembershipViewSet)
+router.register("lpu-c2c-domains", views.LPUC2CDomainViewSet, basename="lpuc2cdomain")
+router.register(
+    "lpu-c2c-rack-positions",
+    views.LPUC2CDomainRackPositionViewSet,
+    basename="lpuc2cdomainrackposition",
+)
+router.register(
+    "lpu-c2c-device-type-compatibilities",
+    views.LPUC2CDeviceTypeCompatibilityViewSet,
+    basename="lpuc2cdevicetypecompatibility",
+)
+router.register(
+    "lpu-c2c-endpoint-configurations",
+    views.LPUC2CEndpointConfigurationViewSet,
+    basename="lpuc2cendpointconfiguration",
+)
 
 urlpatterns = router.urls
