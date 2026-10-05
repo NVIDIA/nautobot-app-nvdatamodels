@@ -16,12 +16,41 @@
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from django.test import TransactionTestCase
+from django.test import TestCase, TransactionTestCase
 from nautobot.core.testing.models import ModelTestCases
-from nautobot.extras.models import DynamicGroup
+from nautobot.dcim.models import Device
+from nautobot.extras.models import ContactAssociation, DynamicGroup, Role, Status
 
 from nautobot_nvdatamodels import choices, models
 from nautobot_nvdatamodels.tests import fixtures
+
+
+class CommonTestDataTestCase(TestCase):
+    """Test shared fixture setup."""
+
+    def test_creates_device_status_when_one_is_not_preconfigured(self):
+        """Common fixture data creates valid devices in a fresh test database."""
+        Status.objects.get_for_model(Device).delete()
+        fixture_data = type("FixtureData", (), {})
+
+        fixtures.common_test_data(fixture_data)
+
+        self.assertIsNotNone(fixture_data.device_status)
+        self.assertTrue(
+            all(
+                device.status_id == fixture_data.device_status.pk
+                for device in fixture_data.unassigned_devices
+            )
+        )
+
+    def test_creates_contact_association_role_for_generic_filter_tests(self):
+        """Common fixture data supports Nautobot's contact-association filter checks."""
+        Role.objects.get_for_model(ContactAssociation).delete()
+
+        fixtures.common_test_data(type("FixtureData", (), {}))
+
+        self.assertTrue(Role.objects.get_for_model(ContactAssociation).exists())
+        self.assertTrue(Status.objects.get_for_model(ContactAssociation).exists())
 
 
 class NVLinkDomainTestCase(ModelTestCases.BaseModelTestCase):

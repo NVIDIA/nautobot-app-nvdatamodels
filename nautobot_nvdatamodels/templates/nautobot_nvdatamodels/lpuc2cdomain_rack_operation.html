@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load form_helpers %}
+
+{% block content %}
+<form action="." method="post" class="form form-horizontal">
+    {% csrf_token %}
+    <input type="hidden" name="return_url" value="{{ return_url }}">
+    {% if device %}<input type="hidden" name="device" value="{{ device.pk }}">{% endif %}
+    <div class="row">
+        <div class="col-md-8 col-md-offset-2">
+            <h1>{{ heading }}</h1>
+            {% if domain %}
+            <div class="panel panel-default">
+                <div class="panel-heading"><strong>Domain</strong></div>
+                <div class="panel-body">
+                    {{ domain }}{% if device %} &mdash; Device: {{ device }}{% endif %}
+                </div>
+            </div>
+            {% endif %}
+            {% if form.non_field_errors %}
+            <div class="panel panel-danger">
+                <div class="panel-heading"><strong>Errors</strong></div>
+                <div class="panel-body">{{ form.non_field_errors }}</div>
+            </div>
+            {% endif %}
+            <div class="panel panel-default">
+                <div class="panel-heading"><strong>Operation details</strong></div>
+                <div class="panel-body">{% render_form form %}</div>
+            </div>
+            <div class="text-right noprint">
+                <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+                <a href="{{ return_url }}" class="btn btn-default">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock content %}

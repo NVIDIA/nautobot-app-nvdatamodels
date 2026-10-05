@@ -14,6 +14,7 @@
 #  limitations under the License.
 """Models for NVIDIA extensions to Nautobot."""
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from nautobot.apps.models import BaseModel, PrimaryModel, extras_features
 from nautobot.core.constants import CHARFIELD_MAX_LENGTH
@@ -21,6 +22,7 @@ from nautobot.dcim.models import Device
 from nautobot.extras.models import RoleField, StatusField
 
 from nautobot_nvdatamodels import choices
+from nautobot_nvdatamodels.lpu_c2c.topology import CoordinatePolicyError, resolve_local_coordinate
 
 
 @extras_features("graphql", "statuses", "custom_fields", "locations")
@@ -105,6 +107,149 @@ class NVLinkDomainMembership(BaseModel):
     def __str__(self) -> str:
         """Stringify instance."""
         return f"{self.member} in {self.domain}"
+
+
+@extras_features("statuses", "custom_fields", "locations")
+class LPUC2CDomain(PrimaryModel):  # pylint: disable=too-many-ancestors
+    """A normalized LPU C2C domain."""
+
+    name = models.CharField(max_length=CHARFIELD_MAX_LENGTH, unique=True)
+    status = StatusField()
+    topology = models.CharField(max_length=CHARFIELD_MAX_LENGTH, choices=choices.LPUC2CTopologyChoices)
+    location = models.ForeignKey("dcim.Location", on_delete=models.PROTECT, related_name="lpu_c2c_domains")
+    tenant = models.ForeignKey(
+        "tenancy.Tenant", on_delete=models.PROTECT, related_name="lpu_c2c_domains", blank=True, null=True
+    )
+
+    class Meta:
+        """Order Domains by name and define their display names."""
+
+        ordering = ["name"]
+        verbose_name = "LPU C2C Domain"
+        verbose_name_plural = "LPU C2C Domains"
+
+    def __str__(self):
+        """Return the Domain name."""
+        return self.name
+
+    def clean(self):
+        """Validate topology consistency, lifecycle, and physical-field mutability."""
+        super().clean()
+        errors = {}
+        if not self._state.adding:
+            persisted = type(self).objects.select_related("status").get(pk=self.pk)
+            persisted_status = persisted.status.name.removeprefix("LPU C2C ")
+            requested_status = (
+                self.status.name.removeprefix("LPU C2C ") if self.status_id is not None else None
+            )
+            topology_changed = self.topology != persisted.topology
+            location_changed = self.location_id != persisted.location_id
+            has_rack_positions = self.rack_positions.exists()
+
+            if persisted_status == choices.LPUC2CDefaultStatusChoices.ACTIVE and (
+                requested_status == choices.LPUC2CDefaultStatusChoices.PLANNED
+            ):
+                errors["status"] = "An Active domain must transition to Maintenance before Planned."
+
+            if persisted_status not in {
+                choices.LPUC2CDefaultStatusChoices.PLANNED,
+                choices.LPUC2CDefaultStatusChoices.MAINTENANCE,
+            }:
+                if topology_changed:
+                    errors["topology"] = (
+                        "Only Planned and Maintenance domains may change topology. "
+                        "Save the lifecycle transition before changing physical inputs."
+                    )
+                if location_changed:
+                    errors["location"] = (
+                        "Only Planned and Maintenance domains may change location. "
+                        "Save the lifecycle transition before changing physical inputs."
+                    )
+
+            if has_rack_positions and topology_changed:
+                errors["topology"] = "Topology cannot change after rack positions exist."
+        if errors:
+            raise ValidationError(errors)
+
+
+@extras_features("graphql")
+class LPUC2CDomainRackPosition(BaseModel):
+    """A rack ordinal within an LPU C2C domain."""
+
+    domain = models.ForeignKey(LPUC2CDomain, on_delete=models.CASCADE, related_name="rack_positions")
+    ordinal = models.PositiveIntegerField()
+    rack = models.OneToOneField(
+        "dcim.Rack", on_delete=models.PROTECT, related_name="lpu_c2c_domain_position", blank=True, null=True
+    )
+
+    class Meta:
+        """Order positions and keep Domain ordinals unique."""
+
+        ordering = ["domain", "ordinal"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("domain", "ordinal"), name="%(app_label)s_%(class)s_domain_ordinal_unique"
+            )
+        ]
+
+    def clean(self):
+        """Validate that an occupied Rack is within the Domain location."""
+        super().clean()
+        if self.rack and self.domain.location not in self.rack.location.ancestors(include_self=True):
+            raise ValidationError({"rack": "Rack location must be within the domain location hierarchy."})
+
+
+@extras_features("graphql")
+class LPUC2CDeviceTypeCompatibility(BaseModel):
+    """A device type supported by an LPU C2C topology."""
+
+    topology = models.CharField(max_length=CHARFIELD_MAX_LENGTH, choices=choices.LPUC2CTopologyChoices)
+    device_type = models.ForeignKey(
+        "dcim.DeviceType", on_delete=models.PROTECT, related_name="lpu_c2c_compatibilities"
+    )
+
+    class Meta:
+        """Keep each topology and DeviceType compatibility unique."""
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=("topology", "device_type"), name="%(app_label)s_%(class)s_topology_device_type_unique"
+            )
+        ]
+
+
+@extras_features("graphql")
+class LPUC2CEndpointConfiguration(BaseModel):
+    """An endpoint exclusion or topology-local coordinate override."""
+
+    device = models.OneToOneField(
+        "dcim.Device", on_delete=models.CASCADE, related_name="lpu_c2c_endpoint_configuration"
+    )
+    rack_position = models.ForeignKey(
+        LPUC2CDomainRackPosition, on_delete=models.CASCADE, related_name="endpoint_configurations"
+    )
+    excluded = models.BooleanField(default=False)
+    tray_slot = models.PositiveSmallIntegerField(blank=True, null=True)
+
+    def clean(self):
+        """Validate endpoint exclusion and coordinate-override consistency."""
+        super().clean()
+        if self.device.rack != self.rack_position.rack:
+            raise ValidationError({"device": "Device rack must match the rack position rack."})
+        has_override = self.tray_slot is not None
+        if not self.excluded and not has_override:
+            raise ValidationError(
+                {"__all__": "Endpoint configuration must exclude or override a coordinate."}
+            )
+        if has_override:
+            try:
+                resolve_local_coordinate(
+                    self.rack_position.domain.topology,
+                    self.device.position,
+                    tray_slot=self.tray_slot,
+                )
+            except CoordinatePolicyError as error:
+                raise ValidationError({"__all__": str(error)}) from error
 
 
 @extras_features("graphql", "statuses", "custom_fields", "locations")

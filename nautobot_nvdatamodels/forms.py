@@ -14,6 +14,8 @@
 #  limitations under the License.
 """Forms for nautobot_nvdatamodels."""
 
+from uuid import UUID
+
 from django import forms
 from nautobot.apps.forms import (
     BootstrapMixin,
@@ -21,6 +23,7 @@ from nautobot.apps.forms import (
     NautobotFilterForm,
     NautobotModelForm,
     StaticSelect2,
+    StaticSelect2Multiple,
     TagsBulkEditFormMixin,
 )
 from nautobot.core.forms import ConfirmationForm, TagFilterField, add_blank_choice
@@ -32,6 +35,14 @@ from nautobot.tenancy.forms import TenancyForm
 from nautobot.tenancy.models import Tenant, TenantGroup
 
 from nautobot_nvdatamodels import choices, models
+from nautobot_nvdatamodels.lpu_c2c import mutations
+from nautobot_nvdatamodels.lpu_c2c.evaluator import evaluate_domain
+from nautobot_nvdatamodels.lpu_c2c.types import ProjectionState
+
+
+def _lpu_c2c_status_name(status):
+    """Return the lifecycle name for prefixed and unprefixed LPU C2C statuses."""
+    return status.name.removeprefix("LPU C2C ")
 
 
 class NVLinkDomainForm(TenancyForm, LocatableModelFormMixin, NautobotModelForm):  # pylint: disable=too-many-ancestors
@@ -603,3 +614,282 @@ class ResourceBlockMembershipFilterForm(NautobotFilterForm):
         "device",
         "resource_block",
     ]
+
+
+class LPUC2CDomainForm(TenancyForm, LocatableModelFormMixin, NautobotModelForm):
+    """Create or edit a normalized LPU C2C domain."""
+
+    location = DynamicModelChoiceField(
+        queryset=Location.objects.all(),
+        query_params={"content_type": "nautobot_nvdatamodels.lpuc2cdomain"},
+    )
+    topology = forms.ChoiceField(
+        choices=choices.LPUC2CTopologyChoices,
+        required=True,
+        widget=StaticSelect2(),
+    )
+
+    class Meta:
+        """Form metadata."""
+
+        model = models.LPUC2CDomain
+        fields = [
+            "name",
+            "status",
+            "topology",
+            "location",
+            "tenant_group",
+            "tenant",
+            "tags",
+        ]
+
+    def clean_status(self):
+        """Preflight the projection only for a real transition into Active."""
+        status = self.cleaned_data["status"]
+        if _lpu_c2c_status_name(status) != choices.LPUC2CDefaultStatusChoices.ACTIVE:
+            return status
+
+        if self.instance.pk:
+            current_status = (
+                models.LPUC2CDomain.objects.only("status")
+                .select_related("status")
+                .get(pk=self.instance.pk)
+                .status
+            )
+            if _lpu_c2c_status_name(current_status) == choices.LPUC2CDefaultStatusChoices.ACTIVE:
+                return status
+            evaluation = evaluate_domain(self.instance)
+            if evaluation.state != ProjectionState.READY:
+                detail = "; ".join(diagnostic.message for diagnostic in evaluation.diagnostics)
+                raise forms.ValidationError(
+                    f"The domain cannot enter Active while its topology is invalid: {detail}"
+                )
+            return status
+
+        raise forms.ValidationError("Create the domain in Planned or Maintenance before activating it.")
+
+
+class LPUC2CDomainFilterForm(NautobotFilterForm):
+    """Filter LPU C2C Domains in the standard list UI."""
+
+    model = models.LPUC2CDomain
+    field_order = ["q", "name", "status", "topology", "location", "tenant_group", "tenant", "tags"]
+    q = forms.CharField(required=False, label="Search")
+    name = forms.CharField(required=False)
+    status = DynamicModelMultipleChoiceField(
+        queryset=Status.objects.all(),
+        query_params={"content_types": models.LPUC2CDomain._meta.label_lower},
+        required=False,
+    )
+    topology = forms.MultipleChoiceField(
+        choices=choices.LPUC2CTopologyChoices,
+        required=False,
+        widget=StaticSelect2Multiple(),
+    )
+    location = DynamicModelMultipleChoiceField(queryset=Location.objects.all(), required=False)
+    tenant_group = DynamicModelChoiceField(
+        queryset=TenantGroup.objects.all(), required=False, null_option="None"
+    )
+    tenant = DynamicModelMultipleChoiceField(
+        queryset=Tenant.objects.all(), query_params={"group": "$tenant_group"}, required=False
+    )
+    tags = TagFilterField(model)
+
+
+class LPUC2CRackOperationForm(BootstrapMixin, forms.Form):
+    """Validate one explicit rack-position operation and dispatch it to the service layer."""
+
+    OPERATION_CHOICES = (
+        ("append", "Append position"),
+        ("fill", "Fill vacancy"),
+        ("vacate", "Vacate position"),
+        ("remove_and_compact", "Remove and compact"),
+        ("insert", "Insert position"),
+        ("reorder", "Reorder positions"),
+    )
+
+    operation = forms.ChoiceField(choices=OPERATION_CHOICES, widget=StaticSelect2())
+    position = DynamicModelChoiceField(queryset=models.LPUC2CDomainRackPosition.objects.all(), required=False)
+    ordinal = forms.IntegerField(required=False, min_value=0)
+    rack = DynamicModelChoiceField(queryset=Rack.objects.all(), required=False)
+    position_ids = forms.CharField(
+        required=False,
+        label="Position ordering",
+        help_text="Comma-separated position IDs in the desired ordinal order.",
+    )
+    confirmed = forms.BooleanField(
+        required=False,
+        label="I understand this operation changes rack ordinals",
+    )
+
+    def __init__(self, *args, domain, device=None, **kwargs):
+        """Bind the operation to one domain and, optionally, one visible Device."""
+        self.domain = domain
+        self.device = device
+        initial = kwargs.setdefault("initial", {})
+        if device is not None and device.rack_id:
+            initial.setdefault("rack", device.rack_id)
+        super().__init__(*args, **kwargs)
+        self.fields["position"].queryset = domain.rack_positions.order_by("ordinal")
+        self.fields["position"].widget.add_url = None
+        if device is not None:
+            self.fields["rack"].disabled = True
+
+    def _validate_mutable_domain(self):
+        if _lpu_c2c_status_name(self.domain.status) not in {
+            choices.LPUC2CDefaultStatusChoices.PLANNED,
+            choices.LPUC2CDefaultStatusChoices.MAINTENANCE,
+        }:
+            raise forms.ValidationError("Only Planned and Maintenance domains may be mutated.")
+
+    def _validate_rack(self, rack, operation):
+        if rack is None:
+            return
+        occupied = models.LPUC2CDomainRackPosition.objects.filter(rack=rack).select_related("domain").first()
+        if occupied and occupied.domain_id != self.domain.pk:
+            self.add_error("rack", "This Rack is occupied by another LPU C2C Domain.")
+        elif occupied and operation in {"append", "fill", "insert"}:
+            self.add_error("rack", "This Rack already has a position in this LPU C2C Domain.")
+        if self.domain.location not in rack.location.ancestors(include_self=True):
+            self.add_error("rack", "Rack location must be within the domain location hierarchy.")
+
+    def clean(self):
+        """Validate operation-specific input without duplicating mutation invariants."""
+        cleaned_data = super().clean()
+        self._validate_mutable_domain()
+        operation = cleaned_data.get("operation")
+        position = cleaned_data.get("position")
+        rack = cleaned_data.get("rack")
+
+        if self.device is not None:
+            if self.device.rack_id is None:
+                raise forms.ValidationError(f"Device {self.device} does not have a Rack.")
+            rack = self.device.rack
+            cleaned_data["rack"] = rack
+            if operation not in {"append", "fill"}:
+                raise forms.ValidationError(
+                    "A Device-first rack assignment must explicitly append or fill an existing vacancy."
+                )
+
+        self._validate_rack(rack, operation)
+
+        if operation == "fill":
+            if position is None:
+                self.add_error("position", "Select the existing vacancy to fill.")
+            elif position.rack_id:
+                self.add_error("position", "Select a vacant rack position.")
+            if rack is None:
+                self.add_error("rack", "A Rack is required to fill a vacancy.")
+        elif operation in {"vacate", "remove_and_compact"} and position is None:
+            self.add_error("position", "Select the rack position to change.")
+        elif operation == "insert" and cleaned_data.get("ordinal") is None:
+            self.add_error("ordinal", "An ordinal is required when inserting a position.")
+        elif operation == "reorder":
+            raw_position_ids = cleaned_data.get("position_ids", "")
+            requested_tokens = [item.strip() for item in raw_position_ids.split(",") if item.strip()]
+            try:
+                requested_ids = [UUID(item) for item in requested_tokens]
+            except ValueError:
+                requested_ids = []
+                self.add_error("position_ids", "Ordering contains an invalid position ID.")
+            actual_ids = [item.pk for item in self.domain.rack_positions.order_by("ordinal")]
+            if not requested_tokens:
+                self.add_error("position_ids", "Provide the complete desired position ordering.")
+            elif requested_ids and (
+                len(requested_ids) != len(set(requested_ids)) or set(requested_ids) != set(actual_ids)
+            ):
+                self.add_error("position_ids", "Ordering must contain every domain position exactly once.")
+            elif requested_ids:
+                cleaned_data["position_ids"] = requested_ids
+
+        if operation in {"remove_and_compact", "insert", "reorder"} and not cleaned_data.get("confirmed"):
+            self.add_error("confirmed", "Explicit confirmation is required for ordinal changes.")
+        return cleaned_data
+
+    def save(self):
+        """Dispatch exactly one validated operation to the mutation service."""
+        operation = self.cleaned_data["operation"]
+        if operation == "append":
+            return mutations.append_position(self.domain, rack=self.cleaned_data.get("rack"))
+        if operation == "fill":
+            return mutations.fill_position(self.cleaned_data["position"], self.cleaned_data["rack"])
+        if operation == "vacate":
+            return mutations.vacate_position(self.cleaned_data["position"])
+        if operation == "remove_and_compact":
+            return mutations.remove_and_compact_position(
+                self.cleaned_data["position"], confirmed=self.cleaned_data["confirmed"]
+            )
+        if operation == "insert":
+            return mutations.insert_position(
+                self.domain,
+                self.cleaned_data["ordinal"],
+                rack=self.cleaned_data.get("rack"),
+                confirmed=self.cleaned_data["confirmed"],
+            )
+        return mutations.reorder_positions(
+            self.domain,
+            self.cleaned_data["position_ids"],
+            confirmed=self.cleaned_data["confirmed"],
+        )
+
+
+class LPUC2CEndpointConfigurationForm(BootstrapMixin, forms.Form):
+    """Configure or remove an endpoint exception through the mutation service."""
+
+    device = DynamicModelChoiceField(queryset=Device.objects.all(), disabled=True)
+    excluded = forms.BooleanField(required=False)
+    tray_slot = forms.IntegerField(required=False, min_value=1, max_value=16)
+
+    def __init__(self, *args, device, **kwargs):
+        """Resolve the Device's single candidate rack position and existing exception."""
+        self.device = device
+        self.rack_position = None
+        self.domain = None
+        self._setup_error = None
+        configuration = (
+            models.LPUC2CEndpointConfiguration.objects.filter(device=device)
+            .select_related("rack_position", "rack_position__domain", "rack_position__domain__status")
+            .first()
+        )
+        initial = kwargs.setdefault("initial", {})
+        initial.setdefault("device", device.pk)
+        if configuration is not None:
+            for field_name in ("excluded", "tray_slot"):
+                initial.setdefault(field_name, getattr(configuration, field_name))
+
+        if device.rack_id is None:
+            self._setup_error = f"Device {device} does not have a Rack."
+        else:
+            current_position = (
+                models.LPUC2CDomainRackPosition.objects.filter(rack_id=device.rack_id)
+                .select_related("domain", "domain__status")
+                .first()
+            )
+            self.rack_position = configuration.rack_position if configuration else current_position
+            if self.rack_position is None:
+                self._setup_error = f"Device {device} is not assigned to an LPU C2C Domain rack position."
+            else:
+                self.domain = self.rack_position.domain
+        super().__init__(*args, **kwargs)
+        self.fields["device"].initial = device.pk
+
+    def clean(self):
+        """Reject unresolved and immutable candidate domains."""
+        cleaned_data = super().clean()
+        if self._setup_error:
+            raise forms.ValidationError(self._setup_error)
+        if _lpu_c2c_status_name(self.domain.status) not in {
+            choices.LPUC2CDefaultStatusChoices.PLANNED,
+            choices.LPUC2CDefaultStatusChoices.MAINTENANCE,
+        }:
+            raise forms.ValidationError("Only Planned and Maintenance domains may be mutated.")
+        return cleaned_data
+
+    def save(self):
+        """Persist or remove the endpoint exception through the sole write service."""
+        return mutations.set_endpoint_configuration(
+            self.device,
+            self.rack_position,
+            excluded=self.cleaned_data.get("excluded", False),
+            tray_slot=self.cleaned_data.get("tray_slot"),
+        )

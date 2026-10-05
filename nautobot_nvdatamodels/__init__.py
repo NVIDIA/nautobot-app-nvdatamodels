@@ -38,7 +38,7 @@ class NautobotNVIDIAConfig(NautobotAppConfig):
     )
     base_url = "nvdatamodels"
     required_settings = []
-    min_version = "2.3.0"
+    min_version = "2.4.20"
     max_version = "2.9999"
     default_settings = {}
     caching_config = {}

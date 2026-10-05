@@ -15,8 +15,8 @@
 """Create fixtures for tests."""
 
 from django.contrib.contenttypes.models import ContentType
-from nautobot.dcim.models import Device, DeviceType, Location, LocationType, Manufacturer
-from nautobot.extras.models import DynamicGroup, Role, Status, Tag
+from nautobot.dcim.models import Device, DeviceType, Location, LocationType, Manufacturer, Rack
+from nautobot.extras.models import ContactAssociation, DynamicGroup, Role, Status, Tag
 from nautobot.tenancy.models import Tenant
 
 from nautobot_nvdatamodels import choices
@@ -28,6 +28,7 @@ def common_test_data(cls):
     cls.nvl_ct = ContentType.objects.get_for_model(NVLinkDomain)
     cls.rb_ct = ContentType.objects.get_for_model(ResourceBlock)
     cls.device_ct = ContentType.objects.get_for_model(Device)
+    cls.contact_association_ct = ContentType.objects.get_for_model(ContactAssociation)
     cls.location_ct = ContentType.objects.get_for_model(Location)
     cls.location_status = Status.objects.get_for_model(Location).first()
     if not cls.location_status:
@@ -36,6 +37,13 @@ def common_test_data(cls):
     cls.nvl_status = Status.objects.get_for_model(NVLinkDomain).first()
     cls.rb_status = Status.objects.get_for_model(ResourceBlock).first()
     cls.device_status = Status.objects.get_for_model(Device).first()
+    if not cls.device_status:
+        cls.device_status = Status.objects.create(name="Test Device Active")
+        cls.device_status.content_types.add(cls.device_ct)
+    cls.contact_association_status = Status.objects.get_for_model(ContactAssociation).first()
+    if not cls.contact_association_status:
+        cls.contact_association_status = Status.objects.create(name="Test Contact Association Active")
+        cls.contact_association_status.content_types.add(cls.contact_association_ct)
     cls.location_type = LocationType.objects.create(name="Test Location Type")
     cls.location_type.content_types.add(cls.nvl_ct, cls.rb_ct, cls.location_ct)
     cls.location = Location.objects.create(
@@ -51,6 +59,8 @@ def common_test_data(cls):
     cls.manufacturer = Manufacturer.objects.create(name="Test Manufacturer")
     cls.device_type = DeviceType.objects.create(manufacturer=cls.manufacturer, model="Test Device Type")
     cls.device_role = Role.objects.create(name="Test Role")
+    cls.contact_association_role = Role.objects.create(name="Test Contact Association Role")
+    cls.contact_association_role.content_types.add(cls.contact_association_ct)
     cls.tenant = Tenant.objects.create(name="Test Tenant")
     cls.tenant2 = Tenant.objects.create(name="Test Tenant 2")
 
@@ -186,6 +196,90 @@ def rb_test_data(cls):
     cls.resource_blocks[0].devices.set(cls.static_devices[:2])
     cls.resource_blocks[1].devices.set(cls.static_devices[2:4])
     cls.resource_blocks[2].devices.set(cls.static_devices[4:6])
+
+
+def lpu_c2c_test_data(cls):
+    """Create shared LPU C2C model test data."""
+    from nautobot_nvdatamodels import models
+
+    domain_model = models.LPUC2CDomain
+    domain_ct = ContentType.objects.get_for_model(domain_model)
+    location_ct = ContentType.objects.get_for_model(Location)
+    rack_ct = ContentType.objects.get_for_model(Rack)
+    device_ct = ContentType.objects.get_for_model(Device)
+
+    location_status = Status.objects.get_for_model(Location).first()
+    if not location_status:
+        location_status = Status.objects.create(name="LPU C2C Location Active")
+        location_status.content_types.add(location_ct)
+    rack_status = Status.objects.get_for_model(Rack).first()
+    if not rack_status:
+        rack_status = Status.objects.create(name="LPU C2C Rack Active")
+        rack_status.content_types.add(rack_ct)
+    device_status = Status.objects.get_for_model(Device).first()
+    if not device_status:
+        device_status = Status.objects.create(name="LPU C2C Device Active")
+        device_status.content_types.add(device_ct)
+
+    cls.planned_status = Status.objects.create(name="LPU C2C Planned")
+    cls.planned_status.content_types.add(domain_ct)
+    for name in ("Active", "Maintenance", "Offline", "Decommissioned"):
+        status = Status.objects.create(name=f"LPU C2C {name}")
+        status.content_types.add(domain_ct)
+
+    location_type = LocationType.objects.create(name="LPU C2C Location Type")
+    location_type.content_types.add(location_ct, domain_ct)
+    cls.location = Location.objects.create(
+        name="LPU C2C Parent Location", location_type=location_type, status=location_status
+    )
+    rack_location = Location.objects.create(
+        name="LPU C2C Rack Location", location_type=location_type, status=location_status, parent=cls.location
+    )
+    cls.other_location = Location.objects.create(
+        name="LPU C2C Other Location", location_type=location_type, status=location_status
+    )
+    cls.rack = Rack.objects.create(name="LPU C2C Rack", location=rack_location, status=rack_status)
+    cls.other_rack = Rack.objects.create(
+        name="LPU C2C Other Rack", location=cls.other_location, status=rack_status
+    )
+
+    manufacturer = Manufacturer.objects.create(name="LPU C2C Manufacturer")
+    cls.device_type = DeviceType.objects.create(manufacturer=manufacturer, model="LPU Tray")
+    cls.incompatible_device_type = DeviceType.objects.create(
+        manufacturer=manufacturer, model="Incompatible LPU Tray"
+    )
+    tray_role, _ = Role.objects.get_or_create(name="LPU Tray", defaults={"color": "ffffff"})
+    tray_role.content_types.add(device_ct)
+    cls.device = Device.objects.create(
+        name="LPU C2C Device",
+        role=tray_role,
+        status=device_status,
+        location=rack_location,
+        rack=cls.rack,
+        position=8,
+        device_type=cls.device_type,
+    )
+    cls.other_device = Device.objects.create(
+        name="LPU C2C Other Device",
+        role=tray_role,
+        status=device_status,
+        location=cls.other_location,
+        rack=cls.other_rack,
+        position=10,
+        device_type=cls.incompatible_device_type,
+    )
+    cls.domain = domain_model.objects.create(
+        name="LPU C2C Domain",
+        status=cls.planned_status,
+        location=cls.location,
+        topology=choices.LPUC2CTopologyChoices.LP30_C2C,
+    )
+    cls.other_domain = domain_model.objects.create(
+        name="LPU C2C Other Domain",
+        status=cls.planned_status,
+        location=cls.location,
+        topology=choices.LPUC2CTopologyChoices.LP30_C2C,
+    )
 
 
 def transaction_test_data(instance):
