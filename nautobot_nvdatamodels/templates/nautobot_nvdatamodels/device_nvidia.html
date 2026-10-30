@@ -6,6 +6,33 @@
     </div>
     <table class="table table-hover panel-body attr-table">
         <tr>
+            <td>LPU C2C Domain</td>
+            <td>
+                {% if lpu_c2c_endpoint %}
+                    {{ lpu_c2c_domain | hyperlinked_object }}
+                    <br><small>State: {{ lpu_c2c_evaluation_state }}</small>
+                    {% if lpu_c2c_coordinate_display %}<br>{{ lpu_c2c_coordinate_display }}{% endif %}
+                    {% if lpu_c2c_diagnostics %}
+                        <ul class="list-unstyled">
+                        {% for diagnostic in lpu_c2c_diagnostics %}
+                            <li><code>{{ diagnostic.code }}</code>: {{ diagnostic.message }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% else %}
+                    <span class="text-muted">—</span>
+                {% endif %}
+            </td>
+            <td class="text-right text-nowrap noprint">
+                {% if lpu_c2c_endpoint and lpu_c2c_can_change_domain %}
+                <a href="{% url 'plugins:nautobot_nvdatamodels:lpuc2c_endpoint_configuration' pk=object.pk %}?return_url={{ object.get_absolute_url|urlencode }}"
+                   class="btn btn-xs btn-warning" title="Configure LPU C2C endpoint">
+                    <i class="mdi mdi-pencil"></i>
+                </a>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
             <td>NVLink Domain</td>
             <td>
                 {% if object.nvlink_domain_membership %}

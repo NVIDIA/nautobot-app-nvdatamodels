@@ -27,6 +27,7 @@ router.register("nvlink-domains", views.NVLinkDomainUIViewSet)
 router.register("nvlink-domain-memberships", views.NVLinkDomainMembershipUIViewSet)
 router.register("resource-blocks", views.ResourceBlockUIViewSet)
 router.register("resource-block-memberships", views.ResourceBlockMembershipUIViewSet)
+router.register("lpu-c2c-domains", views.LPUC2CDomainUIViewSet)
 
 urlpatterns = [
     path("docs/", RedirectView.as_view(url=static("nautobot_nvdatamodels/docs/index.html")), name="docs"),
@@ -49,6 +50,16 @@ urlpatterns = [
         "plugins/nvdatamodels/resource-blocks/<uuid:pk>/devices/remove/",
         views.ResourceBlockRemoveDevicesView.as_view(),
         name="resourceblock_remove_devices",
+    ),
+    path(
+        "lpu-c2c-domains/<uuid:pk>/rack-operation/",
+        views.LPUC2CDomainRackOperationView.as_view(),
+        name="lpuc2cdomain_rack_operation",
+    ),
+    path(
+        "devices/<uuid:pk>/lpu-c2c-endpoint/",
+        views.LPUC2CEndpointConfigurationView.as_view(),
+        name="lpuc2c_endpoint_configuration",
     ),
 ]
 

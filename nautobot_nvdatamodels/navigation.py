@@ -18,6 +18,17 @@ from nautobot.apps.ui import NavMenuAddButton, NavMenuGroup, NavMenuItem, NavMen
 
 items = (
     NavMenuItem(
+        link="plugins:nautobot_nvdatamodels:lpuc2cdomain_list",
+        name="LPU C2C Domains",
+        permissions=["nautobot_nvdatamodels.view_lpuc2cdomain"],
+        buttons=(
+            NavMenuAddButton(
+                link="plugins:nautobot_nvdatamodels:lpuc2cdomain_add",
+                permissions=["nautobot_nvdatamodels.add_lpuc2cdomain"],
+            ),
+        ),
+    ),
+    NavMenuItem(
         link="plugins:nautobot_nvdatamodels:nvlinkdomain_list",
         name="NVLink Domains",
         permissions=["nautobot_nvdatamodels.view_nvlinkdomain"],

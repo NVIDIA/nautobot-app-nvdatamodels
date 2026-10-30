@@ -93,3 +93,29 @@ class ResourceBlockProtocolChoices(ChoiceSet):
         (RDMA, "RDMA"),
         (SPECTRUMX, "SpectrumX"),
     )
+
+
+class LPUC2CTopologyChoices(ChoiceSet):
+    """Choice set for LPU C2C topologies."""
+
+    LP30_C2C = "lp30-c2c"
+
+    CHOICES = ((LP30_C2C, "LP30 Chip-to-Chip"),)
+
+
+class LPUC2CDefaultStatusChoices(ChoiceSet):
+    """Choice set for default LPU C2C statuses."""
+
+    PLANNED = "Planned"
+    ACTIVE = "Active"
+    MAINTENANCE = "Maintenance"
+    OFFLINE = "Offline"
+    DECOMMISSIONED = "Decommissioned"
+
+    CHOICES = (
+        (PLANNED, "Planned"),
+        (ACTIVE, "Active"),
+        (MAINTENANCE, "Maintenance"),
+        (OFFLINE, "Offline"),
+        (DECOMMISSIONED, "Decommissioned"),
+    )
