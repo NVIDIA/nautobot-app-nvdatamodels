@@ -227,6 +227,10 @@ class ResourceBlockTest(APIViewTestCases.APIViewTestCase):
     def test_list_objects_depth_1(self):
         """Currently does not support depth=1."""
 
+    def get_depth_fields(self):
+        """Skip `devices`: it is computed (static + dynamic) and always returns brief references, regardless of depth."""
+        return [field for field in super().get_depth_fields() if field != "devices"]
+
     def get_deletable_object(self):
         """Get a resource block that can be safely deleted (no memberships)."""
         return self.model.objects.create(
