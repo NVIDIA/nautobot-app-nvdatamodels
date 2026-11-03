@@ -1,0 +1,1 @@
+Added a member count to the NVLink Domain "Members" panel, with a Configure button for choosing columns. Devices with a status listed in the new `hidden_member_statuses` setting (default `["Deleted"]`) are hidden by default and can be revealed with a Show/Hide toggle in the panel header.

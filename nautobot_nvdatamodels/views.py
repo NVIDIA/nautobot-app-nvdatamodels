@@ -20,6 +20,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django_tables2 import RequestConfig
 from nautobot.apps import views
+from nautobot.apps.config import get_app_settings_or_config
 from nautobot.core.utils.requests import normalize_querydict
 from nautobot.core.views import generic
 from nautobot.dcim.choices import DeviceFaceChoices
@@ -44,9 +45,27 @@ class NVLinkDomainUIViewSet(views.NautobotUIViewSet):
 
     def get_extra_context(self, request, instance):
         """Get extra context for the NVLinkDomain view."""
-        devices = Device.objects.restrict(request.user, "view").filter(nvlink_domain=instance)
-        device_table = DeviceTable(devices, orderable=False)
+        hidden_statuses = list(
+            get_app_settings_or_config("nautobot_nvdatamodels", "hidden_member_statuses") or []
+        )
+        show_hidden_members = request.GET.get("show_hidden_members", "").lower() in ("true", "1", "yes")
+        all_members = Device.objects.restrict(request.user, "view").filter(nvlink_domain=instance)
+        hidden_members = all_members.filter(status__name__in=hidden_statuses)
+        devices = (
+            all_members if show_hidden_members else all_members.exclude(status__name__in=hidden_statuses)
+        )
+        device_table = tables.NVLinkDomainMemberTable(devices, orderable=False, user=request.user)
         RequestConfig(request, paginate={"per_page": 10}).configure(device_table)
+        # The paginator has already counted ``devices``; reuse it rather than issuing a second COUNT(*).
+        member_count = device_table.paginator.count
+        hidden_member_count = hidden_members.count()
+        # Toggle URLs keep any other query parameters (e.g. ``tab``) intact.
+        show_params = request.GET.copy()
+        show_params["show_hidden_members"] = "true"
+        hide_params = request.GET.copy()
+        hide_params.pop("show_hidden_members", None)
+        show_hidden_url = f"{request.path}?{show_params.urlencode()}"
+        hide_hidden_url = f"{request.path}?{hide_params.urlencode()}" if hide_params else request.path
         if request.user.has_perm("nautobot_nvdatamodels.change_nvlinkdomain"):
             device_table.columns.show("pk")
 
@@ -60,6 +79,12 @@ class NVLinkDomainUIViewSet(views.NautobotUIViewSet):
 
         return {
             "device_table": device_table,
+            "member_count": member_count,
+            "hidden_member_count": hidden_member_count,
+            "hidden_status_label": ", ".join(hidden_statuses),
+            "show_hidden_members": show_hidden_members,
+            "show_hidden_url": show_hidden_url,
+            "hide_hidden_url": hide_hidden_url,
             "rack_face": rack_face,
             "racks": racks,
             **super().get_extra_context(request, instance),

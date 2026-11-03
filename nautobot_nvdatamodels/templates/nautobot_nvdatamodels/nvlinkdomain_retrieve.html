@@ -133,7 +133,22 @@
 {% block content_right_page %}
     <div class="panel panel-default">
         <div class="panel-heading">
-            <strong>Members</strong>
+            <strong>Members ({{ member_count }})</strong>
+            <div class="pull-right noprint">
+                {% if hidden_member_count %}
+                    <div class="btn-group" role="group">
+                        <a href="{{ show_hidden_url }}" class="btn btn-default btn-xs{% if show_hidden_members %} active disabled{% endif %}">
+                            <i class="mdi mdi-eye-outline"></i> Show {{ hidden_status_label }} ({{ hidden_member_count }})
+                        </a>
+                        <a href="{{ hide_hidden_url }}" class="btn btn-default btn-xs{% if not show_hidden_members %} active disabled{% endif %}">
+                            <i class="mdi mdi-eye-off-outline"></i> Hide {{ hidden_status_label }}
+                        </a>
+                    </div>
+                {% endif %}
+                {% if request.user.is_authenticated %}
+                    {% table_config_button_small device_table %}
+                {% endif %}
+            </div>
         </div>
         {% if perms.nautobot_nvdatamodels.change_nvlinkdomain %}
             <form action="{% url 'plugins:nautobot_nvdatamodels:nvlinkdomain_remove_devices' pk=object.pk %}" method="post">
@@ -157,6 +172,8 @@
             </div>
             </form>
         {% endif %}
+        {# Outside the Remove-devices form above: the config modal contains its own <form>. #}
+        {% table_config_form device_table %}
     </div>
 {% endblock content_right_page %}
 
