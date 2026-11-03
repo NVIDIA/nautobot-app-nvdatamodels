@@ -17,6 +17,7 @@
 import django_tables2 as tables
 from nautobot.apps.tables import BaseTable, ButtonsColumn, ToggleColumn
 from nautobot.core.tables import LinkedCountColumn, TagColumn
+from nautobot.dcim.tables import DeviceTable
 from nautobot.extras.tables import RoleTableMixin, StatusTableMixin
 
 from nautobot_nvdatamodels import models
@@ -73,6 +74,17 @@ class NVLinkDomainTable(RoleTableMixin, StatusTableMixin, BaseTable):
             "cluster_id",
             "actions",
         )
+
+
+class NVLinkDomainMemberTable(DeviceTable):
+    """Devices shown in the NVLink Domain "Members" panel.
+
+    A distinct class so that users' "Configure" column choices for this panel are stored under their own
+    preference key (``tables.NVLinkDomainMemberTable.columns``) rather than changing the main Devices list.
+    """
+
+    class Meta(DeviceTable.Meta):
+        """Meta attributes (inherits the Device table's fields and default columns)."""
 
 
 class NVLinkDomainMembershipTable(BaseTable):

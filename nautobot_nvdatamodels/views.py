@@ -50,11 +50,18 @@ class NVLinkDomainUIViewSet(views.NautobotUIViewSet):
         all_members = Device.objects.restrict(request.user, "view").filter(nvlink_domain=instance)
         hidden_members = all_members.filter(status__name__in=hidden_statuses)
         devices = all_members if show_hidden_members else all_members.exclude(status__name__in=hidden_statuses)
-        device_table = DeviceTable(devices, orderable=False)
+        device_table = tables.NVLinkDomainMemberTable(devices, orderable=False, user=request.user)
         RequestConfig(request, paginate={"per_page": 10}).configure(device_table)
         # The paginator has already counted ``devices``; reuse it rather than issuing a second COUNT(*).
         member_count = device_table.paginator.count
         hidden_member_count = hidden_members.count()
+        # Toggle URLs keep any other query parameters (e.g. ``tab``) intact.
+        show_params = request.GET.copy()
+        show_params["show_hidden_members"] = "true"
+        hide_params = request.GET.copy()
+        hide_params.pop("show_hidden_members", None)
+        show_hidden_url = f"{request.path}?{show_params.urlencode()}"
+        hide_hidden_url = f"{request.path}?{hide_params.urlencode()}" if hide_params else request.path
         if request.user.has_perm("nautobot_nvdatamodels.change_nvlinkdomain"):
             device_table.columns.show("pk")
 
@@ -72,6 +79,8 @@ class NVLinkDomainUIViewSet(views.NautobotUIViewSet):
             "hidden_member_count": hidden_member_count,
             "hidden_status_label": ", ".join(hidden_statuses),
             "show_hidden_members": show_hidden_members,
+            "show_hidden_url": show_hidden_url,
+            "hide_hidden_url": hide_hidden_url,
             "rack_face": rack_face,
             "racks": racks,
             **super().get_extra_context(request, instance),

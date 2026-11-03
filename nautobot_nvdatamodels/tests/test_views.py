@@ -87,7 +87,7 @@ class NVLinkDomainViewTest(ViewTestCases.PrimaryObjectViewTestCase):
         self.assertEqual(response.context["member_count"], 2)
         self.assertEqual(response.context["hidden_member_count"], 1)
         self.assertContains(response, "Members (2)")
-        self.assertContains(response, "1 Deleted hidden")
+        self.assertContains(response, "Show Deleted (1)")
         self.assertContains(response, "show_hidden_members=true")
         self.assertNotContains(response, "Member 2")
 
@@ -100,7 +100,7 @@ class NVLinkDomainViewTest(ViewTestCases.PrimaryObjectViewTestCase):
         self.assertHttpStatus(response, 200)
         self.assertEqual(response.context["member_count"], 3)
         self.assertContains(response, "Members (3)")
-        self.assertContains(response, "including Deleted devices")
+        self.assertContains(response, "Hide Deleted")
         self.assertContains(response, "Member 2")
 
     def test_members_show_hidden_ignores_invalid_value(self):
@@ -111,6 +111,21 @@ class NVLinkDomainViewTest(ViewTestCases.PrimaryObjectViewTestCase):
 
         self.assertHttpStatus(response, 200)
         self.assertEqual(response.context["member_count"], 2)
+
+    def test_members_toggle_links_preserve_other_query_params(self):
+        """Show/Hide links keep unrelated parameters such as ``tab``."""
+        domain = self._setup_members()
+        base = self._detail_url(domain)
+
+        response = self.client.get(base + "?tab=main")
+        self.assertEqual(response.context["show_hidden_url"], base + "?tab=main&show_hidden_members=true")
+        self.assertEqual(response.context["hide_hidden_url"], base + "?tab=main")
+
+        response = self.client.get(base + "?tab=main&show_hidden_members=true")
+        self.assertEqual(response.context["hide_hidden_url"], base + "?tab=main")
+
+        response = self.client.get(base)
+        self.assertEqual(response.context["hide_hidden_url"], base)
 
     @override_settings(PLUGINS_CONFIG={"nautobot_nvdatamodels": {"hidden_member_statuses": []}})
     def test_members_hidden_statuses_configurable(self):
