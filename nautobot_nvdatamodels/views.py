@@ -45,11 +45,15 @@ class NVLinkDomainUIViewSet(views.NautobotUIViewSet):
 
     def get_extra_context(self, request, instance):
         """Get extra context for the NVLinkDomain view."""
-        hidden_statuses = list(get_app_settings_or_config("nautobot_nvdatamodels", "hidden_member_statuses") or [])
+        hidden_statuses = list(
+            get_app_settings_or_config("nautobot_nvdatamodels", "hidden_member_statuses") or []
+        )
         show_hidden_members = request.GET.get("show_hidden_members", "").lower() in ("true", "1", "yes")
         all_members = Device.objects.restrict(request.user, "view").filter(nvlink_domain=instance)
         hidden_members = all_members.filter(status__name__in=hidden_statuses)
-        devices = all_members if show_hidden_members else all_members.exclude(status__name__in=hidden_statuses)
+        devices = (
+            all_members if show_hidden_members else all_members.exclude(status__name__in=hidden_statuses)
+        )
         device_table = tables.NVLinkDomainMemberTable(devices, orderable=False, user=request.user)
         RequestConfig(request, paginate={"per_page": 10}).configure(device_table)
         # The paginator has already counted ``devices``; reuse it rather than issuing a second COUNT(*).
