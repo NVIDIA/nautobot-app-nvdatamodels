@@ -45,8 +45,12 @@ class NVLinkDomainTestCase(FormTestCases.BaseFormTestCase):
                 "status": self.nvl_status.pk,
                 "role": self.nvl_role.pk,
                 "tenant": self.tenant.pk,
-                "protocol": choices.NVLinkDomainProtocolChoices.NVLINK_V5,
-                "topology": choices.NVLinkDomainTopologyChoices.GB200_NVL36R1_C2G4,
+                "protocol": models.NVLinkDomainProtocol.objects.get(
+                    name=choices.NVLinkDomainProtocolChoices.NVLINK_V5
+                ).pk,
+                "topology": models.NVLinkDomainTopology.objects.get(
+                    name=choices.NVLinkDomainTopologyChoices.GB200_NVL36R1_C2G4
+                ).pk,
                 "cluster_id": "test-cluster-123",
                 "tags": [self.tag.pk],
             }
@@ -55,7 +59,7 @@ class NVLinkDomainTestCase(FormTestCases.BaseFormTestCase):
         saved_domain = form.save()
         self.assertEqual(saved_domain.name, "Test NVLink Domain")
         self.assertEqual(saved_domain.cluster_id, "test-cluster-123")
-        self.assertEqual(saved_domain.protocol, choices.NVLinkDomainProtocolChoices.NVLINK_V5)
+        self.assertEqual(saved_domain.protocol.name, choices.NVLinkDomainProtocolChoices.NVLINK_V5)
 
     def test_nvlinkdomain_form_required_fields_only(self):
         """Test NVLinkDomain form with only required fields."""
@@ -119,14 +123,18 @@ class NVLinkDomainTestCase(FormTestCases.BaseFormTestCase):
                 "name": "Protocol Test Domain",
                 "location": self.location.pk,
                 "status": self.nvl_status.pk,
-                "protocol": choices.NVLinkDomainProtocolChoices.INFINIBAND,
-                "topology": choices.NVLinkDomainTopologyChoices.GB200_NVL72R2_C2G4,
+                "protocol": models.NVLinkDomainProtocol.objects.get(
+                    name=choices.NVLinkDomainProtocolChoices.INFINIBAND
+                ).pk,
+                "topology": models.NVLinkDomainTopology.objects.get(
+                    name=choices.NVLinkDomainTopologyChoices.GB200_NVL72R2_C2G4
+                ).pk,
             }
         )
         self.assertTrue(form.is_valid(), f"Form errors: {form.errors}")
         saved_domain = form.save()
-        self.assertEqual(saved_domain.protocol, choices.NVLinkDomainProtocolChoices.INFINIBAND)
-        self.assertEqual(saved_domain.topology, choices.NVLinkDomainTopologyChoices.GB200_NVL72R2_C2G4)
+        self.assertEqual(saved_domain.protocol.name, choices.NVLinkDomainProtocolChoices.INFINIBAND)
+        self.assertEqual(saved_domain.topology.name, choices.NVLinkDomainTopologyChoices.GB200_NVL72R2_C2G4)
 
     def test_nvlinkdomain_form_with_members(self):
         """Test form with member devices."""

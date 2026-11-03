@@ -19,6 +19,8 @@ from nautobot.apps.api import OrderedDefaultRouter
 from nautobot_nvdatamodels.api import views
 
 router = OrderedDefaultRouter()
+router.register("nvlink-domain-protocols", views.NVLinkDomainProtocolViewSet)
+router.register("nvlink-domain-topologies", views.NVLinkDomainTopologyViewSet)
 router.register("nvlink-domains", views.NVLinkDomainViewSet)
 router.register("nvlink-domain-memberships", views.NVLinkDomainMembershipViewSet)
 router.register("resource-blocks", views.ResourceBlockViewSet)

@@ -37,9 +37,21 @@ class NVLinkDomainFilterSet(
     q = SearchFilter(
         filter_predicates={
             "name": "icontains",
-            "protocol": "icontains",
+            "protocol__name": "icontains",
             "cluster_id": "icontains",
         },
+    )
+
+    protocol = NaturalKeyOrPKMultipleChoiceFilter(
+        queryset=models.NVLinkDomainProtocol.objects.all(),
+        to_field_name="name",
+        label="Protocol (name or ID)",
+    )
+
+    topology = NaturalKeyOrPKMultipleChoiceFilter(
+        queryset=models.NVLinkDomainTopology.objects.all(),
+        to_field_name="name",
+        label="Topology (name or ID)",
     )
 
     rack_group = TreeNodeMultipleChoiceFilter(
@@ -138,3 +150,23 @@ class ResourceBlockMembershipFilterSet(NautobotFilterSet, NameSearchFilterSet): 
 
         model = models.ResourceBlockMembership
         fields = "__all__"
+
+
+class NVLinkDomainProtocolFilterSet(NautobotFilterSet, NameSearchFilterSet):
+    """Filter NVLink domain protocol entries."""
+
+    class Meta:
+        """Model metadata."""
+
+        model = models.NVLinkDomainProtocol
+        fields = ["id", "name", "description"]
+
+
+class NVLinkDomainTopologyFilterSet(NautobotFilterSet, NameSearchFilterSet):
+    """Filter NVLink domain topology entries."""
+
+    class Meta:
+        """Model metadata."""
+
+        model = models.NVLinkDomainTopology
+        fields = ["id", "name", "description"]

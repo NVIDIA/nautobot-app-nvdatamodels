@@ -23,22 +23,21 @@ from nautobot.extras.models import Status
 
 from nautobot_nvdatamodels.models import NVLinkDomain, ResourceBlock
 
-from .choices import NVLinkDomainDefaultStatusChoices
-
 
 @receiver(nautobot_database_ready, sender=apps.get_app_config("nautobot_nvdatamodels"))
 def create_default_nvlink_domain_statuses(**kwargs):
     """Create default statuses for NVLinkDomain objects."""
     content_type = ContentType.objects.get_for_model(NVLinkDomain)
-    color_mapping = {
-        "Active": ColorChoices.COLOR_GREEN,
-        "Healthy": ColorChoices.COLOR_GREEN,
-        "Degraded": ColorChoices.COLOR_YELLOW,
-        "Planned": ColorChoices.COLOR_GREY,
-        "Offline": ColorChoices.COLOR_GREY,
-    }
-    for status_name, color in NVLinkDomainDefaultStatusChoices.CHOICES:
-        status, _ = Status.objects.get_or_create(name=status_name, defaults={"color": color_mapping[color]})
+    # Seed native Status objects; this is not a restriction on allowed statuses.
+    defaults = (
+        ("Active", ColorChoices.COLOR_GREEN),
+        ("Healthy", ColorChoices.COLOR_GREEN),
+        ("Degraded", ColorChoices.COLOR_YELLOW),
+        ("Planned", ColorChoices.COLOR_GREY),
+        ("Offline", ColorChoices.COLOR_GREY),
+    )
+    for status_name, color in defaults:
+        status, _ = Status.objects.get_or_create(name=status_name, defaults={"color": color})
         status.content_types.add(content_type)
 
 

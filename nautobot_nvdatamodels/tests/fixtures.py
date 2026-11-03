@@ -16,15 +16,31 @@
 
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device, DeviceType, Location, LocationType, Manufacturer
-from nautobot.extras.models import DynamicGroup, Role, Status, Tag
+from nautobot.extras.models import ContactAssociation, DynamicGroup, Role, Status, Tag
 from nautobot.tenancy.models import Tenant
 
-from nautobot_nvdatamodels import choices
+from nautobot_nvdatamodels import choices, models
 from nautobot_nvdatamodels.models import NVLinkDomain, ResourceBlock
 
 
 def common_test_data(cls):
     """Create common test data for NVLinkDomain and ResourceBlock."""
+    for model, defaults in (
+        (models.NVLinkDomainProtocol, choices.NVLinkDomainProtocolChoices.CHOICES),
+        (models.NVLinkDomainTopology, choices.NVLinkDomainTopologyChoices.CHOICES),
+    ):
+        for name, description in defaults:
+            model.objects.get_or_create(name=name, defaults={"description": description})
+    # Transaction tests flush migration-seeded statuses from reused databases.
+    active, _ = Status.objects.get_or_create(name="Active")
+    active.content_types.add(
+        *(
+            ContentType.objects.get_for_model(model)
+            for model in (NVLinkDomain, ResourceBlock, Device, Location, ContactAssociation)
+        )
+    )
+    contact_role, _ = Role.objects.get_or_create(name="Test Contact Role")
+    contact_role.content_types.add(ContentType.objects.get_for_model(ContactAssociation))
     cls.nvl_ct = ContentType.objects.get_for_model(NVLinkDomain)
     cls.rb_ct = ContentType.objects.get_for_model(ResourceBlock)
     cls.device_ct = ContentType.objects.get_for_model(Device)
@@ -80,8 +96,12 @@ def nvl_test_data(cls):
             name="Test NVLink Domain 1",
             location=cls.location,
             status=cls.nvl_status,
-            protocol=choices.NVLinkDomainProtocolChoices.NVLINK_V5,
-            topology=choices.NVLinkDomainTopologyChoices.GB200_NVL36R1_C2G4,
+            protocol=models.NVLinkDomainProtocol.objects.get(
+                name=choices.NVLinkDomainProtocolChoices.NVLINK_V5
+            ),
+            topology=models.NVLinkDomainTopology.objects.get(
+                name=choices.NVLinkDomainTopologyChoices.GB200_NVL36R1_C2G4
+            ),
             cluster_id="cluster-1",
             tags=[cls.tag],
         ),
@@ -89,8 +109,12 @@ def nvl_test_data(cls):
             name="Test NVLink Domain 2",
             location=cls.location2,
             status=cls.nvl_status,
-            protocol=choices.NVLinkDomainProtocolChoices.NVLINK_V3,
-            topology=choices.NVLinkDomainTopologyChoices.GB200_NVL72R2_C2G4,
+            protocol=models.NVLinkDomainProtocol.objects.get(
+                name=choices.NVLinkDomainProtocolChoices.NVLINK_V3
+            ),
+            topology=models.NVLinkDomainTopology.objects.get(
+                name=choices.NVLinkDomainTopologyChoices.GB200_NVL72R2_C2G4
+            ),
             cluster_id="cluster-2",
             role=cls.nvl_role,
             tenant=cls.tenant,
@@ -100,7 +124,9 @@ def nvl_test_data(cls):
             name="Test NVLink Domain 3",
             location=cls.location,
             status=cls.nvl_status,
-            protocol=choices.NVLinkDomainProtocolChoices.INFINIBAND,
+            protocol=models.NVLinkDomainProtocol.objects.get(
+                name=choices.NVLinkDomainProtocolChoices.INFINIBAND
+            ),
             cluster_id="cluster-3",
             tenant=cls.tenant2,
             tags=[cls.tag],

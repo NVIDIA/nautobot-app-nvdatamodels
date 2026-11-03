@@ -38,7 +38,7 @@ class NVLinkDomainUIViewSet(views.NautobotUIViewSet):
     filterset_form_class = forms.NVLinkDomainFilterForm
     form_class = forms.NVLinkDomainForm
     lookup_field = "pk"
-    queryset = models.NVLinkDomain.objects.all()
+    queryset = models.NVLinkDomain.objects.select_related("protocol", "topology")
     serializer_class = serializers.NVLinkDomainSerializer
     table_class = tables.NVLinkDomainTable
 
@@ -69,7 +69,7 @@ class NVLinkDomainUIViewSet(views.NautobotUIViewSet):
 class NVLinkDomainAddDevicesView(generic.ObjectEditView):
     """Add devices to an NVLink domain."""
 
-    queryset = models.NVLinkDomain.objects.all()
+    queryset = models.NVLinkDomain.objects.select_related("protocol", "topology")
     form = forms.NVLinkDomainAddDevicesForm
     template_name = "nautobot_nvdatamodels/nvlinkdomain_add_devices.html"
 
@@ -122,7 +122,7 @@ class NVLinkDomainAddDevicesView(generic.ObjectEditView):
 class NVLinkDomainRemoveDevicesView(generic.ObjectEditView):
     """Remove devices from an NVLink domain."""
 
-    queryset = models.NVLinkDomain.objects.all()
+    queryset = models.NVLinkDomain.objects.select_related("protocol", "topology")
     form = forms.NVLinkDomainRemoveDevicesForm
     template_name = "nautobot_nvdatamodels/object_bulk_remove.html"
 
@@ -334,3 +334,25 @@ class ResourceBlockMembershipUIViewSet(
     table_class = tables.ResourceBlockMembershipTable
     filterset_class = filters.ResourceBlockMembershipFilterSet
     template_name = "nautobot_nvdatamodels/resourceblockmembership_create.html"
+
+
+class NVLinkDomainProtocolUIViewSet(views.NautobotUIViewSet):
+    """Manage NVLink domain protocol entries."""
+
+    queryset = models.NVLinkDomainProtocol.objects.all()
+    form_class = forms.NVLinkDomainProtocolForm
+    filterset_class = filters.NVLinkDomainProtocolFilterSet
+    filterset_form_class = forms.NVLinkDomainProtocolFilterForm
+    serializer_class = serializers.NVLinkDomainProtocolSerializer
+    table_class = tables.NVLinkDomainProtocolTable
+
+
+class NVLinkDomainTopologyUIViewSet(views.NautobotUIViewSet):
+    """Manage NVLink domain topology entries."""
+
+    queryset = models.NVLinkDomainTopology.objects.all()
+    form_class = forms.NVLinkDomainTopologyForm
+    filterset_class = filters.NVLinkDomainTopologyFilterSet
+    filterset_form_class = forms.NVLinkDomainTopologyFilterForm
+    serializer_class = serializers.NVLinkDomainTopologySerializer
+    table_class = tables.NVLinkDomainTopologyTable

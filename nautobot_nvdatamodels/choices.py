@@ -17,26 +17,8 @@
 from nautobot.core.choices import ChoiceSet
 
 
-class NVLinkDomainDefaultStatusChoices(ChoiceSet):
-    """Choice set for default statuses for NVLink domains."""
-
-    ACTIVE = "Active"
-    HEALTHY = "Healthy"
-    DEGRADED = "Degraded"
-    PLANNED = "Planned"
-    OFFLINE = "Offline"
-
-    CHOICES = (
-        (ACTIVE, "Active"),
-        (HEALTHY, "Healthy"),
-        (DEGRADED, "Degraded"),
-        (PLANNED, "Planned"),
-        (OFFLINE, "Offline"),
-    )
-
-
 class NVLinkDomainTopologyChoices(ChoiceSet):
-    """Choice set for NVLink domain topologies."""
+    """Legacy topology constants; available values are managed by NVLinkDomainTopology."""
 
     GB200_NVL36R1_C2G4 = "gb200_nvl36r1_c2g4"
     GB200_NVL72R2_C2G4 = "gb200_nvl72r2_c2g4"
@@ -58,7 +40,7 @@ class NVLinkDomainTopologyChoices(ChoiceSet):
 
 
 class NVLinkDomainProtocolChoices(ChoiceSet):
-    """Choice set for NVLink domain protocols."""
+    """Legacy protocol constants; available values are managed by NVLinkDomainProtocol."""
 
     NVLINK_V2 = "nvlink_v2"
     NVLINK_V3 = "nvlink_v3"

@@ -23,6 +23,44 @@ from nautobot.extras.models import RoleField, StatusField
 from nautobot_nvdatamodels import choices
 
 
+@extras_features("graphql", "custom_fields")
+class NVLinkDomainProtocol(PrimaryModel):
+    """User-managed NVLink domain protocol."""
+
+    name = models.CharField(max_length=CHARFIELD_MAX_LENGTH, unique=True)
+    description = models.CharField(max_length=CHARFIELD_MAX_LENGTH, blank=True)
+
+    class Meta:
+        """Model metadata."""
+
+        ordering = ["name"]
+        verbose_name = "NVLink Domain Protocol"
+        verbose_name_plural = "NVLink Domain Protocols"
+
+    def __str__(self):
+        """Return the display label."""
+        return self.description or self.name
+
+
+@extras_features("graphql", "custom_fields")
+class NVLinkDomainTopology(PrimaryModel):
+    """User-managed NVLink domain topology."""
+
+    name = models.CharField(max_length=CHARFIELD_MAX_LENGTH, unique=True)
+    description = models.CharField(max_length=CHARFIELD_MAX_LENGTH, blank=True)
+
+    class Meta:
+        """Model metadata."""
+
+        ordering = ["name"]
+        verbose_name = "NVLink Domain Topology"
+        verbose_name_plural = "NVLink Domain Topologies"
+
+    def __str__(self):
+        """Return the display label."""
+        return self.description or self.name
+
+
 @extras_features("graphql", "statuses", "custom_fields", "locations")
 class NVLinkDomain(PrimaryModel):  # pylint: disable=too-many-ancestors
     """NVLink Domain model."""
@@ -57,8 +95,8 @@ class NVLinkDomain(PrimaryModel):  # pylint: disable=too-many-ancestors
         null=True,
     )
     cluster_id = models.CharField(max_length=CHARFIELD_MAX_LENGTH, verbose_name="Cluster ID", blank=True)
-    protocol = models.CharField(
-        max_length=CHARFIELD_MAX_LENGTH, choices=choices.NVLinkDomainProtocolChoices, blank=True, null=True
+    protocol = models.ForeignKey(
+        "NVLinkDomainProtocol", on_delete=models.PROTECT, related_name="nvlink_domains", blank=True, null=True
     )
     members = models.ManyToManyField(
         to="dcim.Device",
@@ -68,8 +106,8 @@ class NVLinkDomain(PrimaryModel):  # pylint: disable=too-many-ancestors
         blank=True,
         verbose_name="Domain Members",
     )
-    topology = models.CharField(
-        max_length=CHARFIELD_MAX_LENGTH, choices=choices.NVLinkDomainTopologyChoices, blank=True, null=True
+    topology = models.ForeignKey(
+        "NVLinkDomainTopology", on_delete=models.PROTECT, related_name="nvlink_domains", blank=True, null=True
     )
 
     class Meta:

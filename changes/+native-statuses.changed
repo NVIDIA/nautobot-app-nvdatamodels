@@ -1,0 +1,1 @@
+Keep native Nautobot Status seeding for NVLink domains and Resource Blocks while removing the misleading NVLink status choice enum. Custom statuses remain supported through content-type associations.

@@ -1,0 +1,1 @@
+Add configurable NVLink domain protocol and topology tables with UI and API management, seeded defaults, and a reversible migration preserving existing assignments.
