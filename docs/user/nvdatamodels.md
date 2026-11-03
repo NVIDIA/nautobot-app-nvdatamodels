@@ -50,6 +50,27 @@ HTML forms use reference UUIDs. Python callers now assign model instances to
 `domain.protocol` and `domain.topology`, and read their `.name` for API identifiers.
 Renaming an entry updates the identifier returned for all domains using it.
 
+### GraphQL compatibility
+
+Existing queries can continue selecting `topology` and `protocol` as nullable string names.
+Use `nvlink_domain_topology` and `nvlink_domain_protocol` to request the corresponding reference objects:
+
+```graphql
+query($domains: [String], $limit: Int, $offset: Int) {
+  nvlink_domains(name: $domains, limit: $limit, offset: $offset) {
+    name
+    topology
+    protocol
+    nvlink_domain_topology { name description }
+    nvlink_domain_protocol { name description }
+  }
+}
+```
+
+The scalar shortcuts remain available to users who can view the domain, matching the REST representation.
+Expanded reference fields return `null` when unassigned or when the user lacks view permission on that reference.
+The top-level `nvlink_domain_topologies` and `nvlink_domain_protocols` queries remain available for browsing reference entries.
+
 ## Resource Block Model
 
 A **resource block** is a reusable, abstract set of resources (such as devices, device components, or interfaces) that can be reserved, allocated, or managed as a single logical unit. This enables repeatable, modular assignments for projects or workflows.

@@ -23,7 +23,7 @@ from nautobot.extras.models import RoleField, StatusField
 from nautobot_nvdatamodels import choices
 
 
-@extras_features("graphql", "custom_fields")
+@extras_features("custom_fields")
 class NVLinkDomainProtocol(PrimaryModel):
     """User-managed NVLink domain protocol."""
 
@@ -42,7 +42,7 @@ class NVLinkDomainProtocol(PrimaryModel):
         return self.description or self.name
 
 
-@extras_features("graphql", "custom_fields")
+@extras_features("custom_fields")
 class NVLinkDomainTopology(PrimaryModel):
     """User-managed NVLink domain topology."""
 
@@ -61,7 +61,7 @@ class NVLinkDomainTopology(PrimaryModel):
         return self.description or self.name
 
 
-@extras_features("graphql", "statuses", "custom_fields", "locations")
+@extras_features("statuses", "custom_fields", "locations")
 class NVLinkDomain(PrimaryModel):  # pylint: disable=too-many-ancestors
     """NVLink Domain model."""
 
