@@ -133,7 +133,18 @@
 {% block content_right_page %}
     <div class="panel panel-default">
         <div class="panel-heading">
-            <strong>Members</strong>
+            <strong>Members ({{ member_count }})</strong>
+            {% if show_hidden_members %}
+                <small class="text-muted">
+                    &middot; including {{ hidden_status_label }} devices
+                    &middot; <a href="{% url 'plugins:nautobot_nvdatamodels:nvlinkdomain' pk=object.pk %}">Hide</a>
+                </small>
+            {% elif hidden_member_count %}
+                <small class="text-muted">
+                    &middot; {{ hidden_member_count }} {{ hidden_status_label }} hidden
+                    &middot; <a href="{% url 'plugins:nautobot_nvdatamodels:nvlinkdomain' pk=object.pk %}?show_hidden_members=true">Show</a>
+                </small>
+            {% endif %}
         </div>
         {% if perms.nautobot_nvdatamodels.change_nvlinkdomain %}
             <form action="{% url 'plugins:nautobot_nvdatamodels:nvlinkdomain_remove_devices' pk=object.pk %}" method="post">

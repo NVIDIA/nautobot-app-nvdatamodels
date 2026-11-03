@@ -20,6 +20,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django_tables2 import RequestConfig
 from nautobot.apps import views
+from nautobot.apps.config import get_app_settings_or_config
 from nautobot.core.utils.requests import normalize_querydict
 from nautobot.core.views import generic
 from nautobot.dcim.choices import DeviceFaceChoices
@@ -44,9 +45,16 @@ class NVLinkDomainUIViewSet(views.NautobotUIViewSet):
 
     def get_extra_context(self, request, instance):
         """Get extra context for the NVLinkDomain view."""
-        devices = Device.objects.restrict(request.user, "view").filter(nvlink_domain=instance)
+        hidden_statuses = list(get_app_settings_or_config("nautobot_nvdatamodels", "hidden_member_statuses") or [])
+        show_hidden_members = request.GET.get("show_hidden_members", "").lower() in ("true", "1", "yes")
+        all_members = Device.objects.restrict(request.user, "view").filter(nvlink_domain=instance)
+        hidden_members = all_members.filter(status__name__in=hidden_statuses)
+        devices = all_members if show_hidden_members else all_members.exclude(status__name__in=hidden_statuses)
         device_table = DeviceTable(devices, orderable=False)
         RequestConfig(request, paginate={"per_page": 10}).configure(device_table)
+        # The paginator has already counted ``devices``; reuse it rather than issuing a second COUNT(*).
+        member_count = device_table.paginator.count
+        hidden_member_count = hidden_members.count()
         if request.user.has_perm("nautobot_nvdatamodels.change_nvlinkdomain"):
             device_table.columns.show("pk")
 
@@ -60,6 +68,10 @@ class NVLinkDomainUIViewSet(views.NautobotUIViewSet):
 
         return {
             "device_table": device_table,
+            "member_count": member_count,
+            "hidden_member_count": hidden_member_count,
+            "hidden_status_label": ", ".join(hidden_statuses),
+            "show_hidden_members": show_hidden_members,
             "rack_face": rack_face,
             "racks": racks,
             **super().get_extra_context(request, instance),
