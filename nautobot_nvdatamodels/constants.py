@@ -15,7 +15,6 @@
 """Constants for the NV Data Models plugin."""
 
 DEFAULT_STATUS_NAME = "Planned"
-DEFAULT_NVLINK_DOMAIN_STATUS_NAME = "Active"
 DEFAULT_INTERFACE_STATUS_NAME = "Active"
 DEFAULT_CABLE_STATUS_NAME = "Connected"
 DEFAULT_RACK_STATUS_NAME = "Planned"

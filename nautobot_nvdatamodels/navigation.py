@@ -18,6 +18,28 @@ from nautobot.apps.ui import NavMenuAddButton, NavMenuGroup, NavMenuItem, NavMen
 
 items = (
     NavMenuItem(
+        link="plugins:nautobot_nvdatamodels:nvlinkdomaintopology_list",
+        name="NVLink Topologies",
+        permissions=["nautobot_nvdatamodels.view_nvlinkdomaintopology"],
+        buttons=(
+            NavMenuAddButton(
+                link="plugins:nautobot_nvdatamodels:nvlinkdomaintopology_add",
+                permissions=["nautobot_nvdatamodels.add_nvlinkdomaintopology"],
+            ),
+        ),
+    ),
+    NavMenuItem(
+        link="plugins:nautobot_nvdatamodels:nvlinkdomainprotocol_list",
+        name="NVLink Protocols",
+        permissions=["nautobot_nvdatamodels.view_nvlinkdomainprotocol"],
+        buttons=(
+            NavMenuAddButton(
+                link="plugins:nautobot_nvdatamodels:nvlinkdomainprotocol_add",
+                permissions=["nautobot_nvdatamodels.add_nvlinkdomainprotocol"],
+            ),
+        ),
+    ),
+    NavMenuItem(
         link="plugins:nautobot_nvdatamodels:nvlinkdomain_list",
         name="NVLink Domains",
         permissions=["nautobot_nvdatamodels.view_nvlinkdomain"],

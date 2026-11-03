@@ -23,7 +23,7 @@ from nautobot_nvdatamodels.api import serializers
 class NVLinkDomainViewSet(NautobotModelViewSet):  # pylint: disable=too-many-ancestors
     """NVLinkDomain viewset."""
 
-    queryset = models.NVLinkDomain.objects.all()
+    queryset = models.NVLinkDomain.objects.select_related("protocol", "topology")
     serializer_class = serializers.NVLinkDomainSerializer
     filterset_class = filters.NVLinkDomainFilterSet
 
@@ -56,3 +56,19 @@ class ResourceBlockMembershipViewSet(ModelViewSet):  # pylint: disable=too-many-
     queryset = models.ResourceBlockMembership.objects.all()
     serializer_class = serializers.ResourceBlockMembershipSerializer
     filterset_class = filters.ResourceBlockMembershipFilterSet
+
+
+class NVLinkDomainProtocolViewSet(NautobotModelViewSet):
+    """Manage NVLink domain protocol entries."""
+
+    queryset = models.NVLinkDomainProtocol.objects.all()
+    serializer_class = serializers.NVLinkDomainProtocolSerializer
+    filterset_class = filters.NVLinkDomainProtocolFilterSet
+
+
+class NVLinkDomainTopologyViewSet(NautobotModelViewSet):
+    """Manage NVLink domain topology entries."""
+
+    queryset = models.NVLinkDomainTopology.objects.all()
+    serializer_class = serializers.NVLinkDomainTopologySerializer
+    filterset_class = filters.NVLinkDomainTopologyFilterSet

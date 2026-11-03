@@ -23,6 +23,8 @@ from nautobot_nvdatamodels import views
 
 router = NautobotUIViewSetRouter()
 
+router.register("nvlink-domain-protocols", views.NVLinkDomainProtocolUIViewSet)
+router.register("nvlink-domain-topologies", views.NVLinkDomainTopologyUIViewSet)
 router.register("nvlink-domains", views.NVLinkDomainUIViewSet)
 router.register("nvlink-domain-memberships", views.NVLinkDomainMembershipUIViewSet)
 router.register("resource-blocks", views.ResourceBlockUIViewSet)

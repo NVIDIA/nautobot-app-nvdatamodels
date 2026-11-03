@@ -184,3 +184,33 @@ class ResourceBlockMembershipTable(BaseTable):
             "resource_block",
             "device",
         )
+
+
+class NVLinkDomainProtocolTable(BaseTable):
+    """List NVLink domain protocol entries."""
+
+    pk = ToggleColumn()
+    name = tables.Column(linkify=True)
+    actions = ButtonsColumn(models.NVLinkDomainProtocol)
+
+    class Meta(BaseTable.Meta):
+        """Table metadata."""
+
+        model = models.NVLinkDomainProtocol
+        fields = ("pk", "name", "description", "actions")
+        default_columns = fields
+
+
+class NVLinkDomainTopologyTable(BaseTable):
+    """List NVLink domain topology entries."""
+
+    pk = ToggleColumn()
+    name = tables.Column(linkify=True)
+    actions = ButtonsColumn(models.NVLinkDomainTopology)
+
+    class Meta(BaseTable.Meta):
+        """Table metadata."""
+
+        model = models.NVLinkDomainTopology
+        fields = ("pk", "name", "description", "actions")
+        default_columns = fields
