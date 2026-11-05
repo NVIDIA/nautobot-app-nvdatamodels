@@ -67,15 +67,13 @@ class NVLinkDomainForm(TenancyForm, LocatableModelFormMixin, NautobotModelForm):
         label="Members",
         help_text="Devices that participate to this NVLink domain",
     )
-    protocol = forms.ChoiceField(
-        choices=add_blank_choice(choices.NVLinkDomainProtocolChoices),
+    protocol = DynamicModelChoiceField(
+        queryset=models.NVLinkDomainProtocol.objects.all(),
         required=False,
-        widget=StaticSelect2(),
     )
-    topology = forms.ChoiceField(
-        choices=add_blank_choice(choices.NVLinkDomainTopologyChoices),
+    topology = DynamicModelChoiceField(
+        queryset=models.NVLinkDomainTopology.objects.all(),
         required=False,
-        widget=StaticSelect2(),
     )
     cluster_id = forms.CharField(required=False, label="Cluster ID", help_text="Cluster identifier")
 
@@ -106,6 +104,8 @@ class NVLinkDomainBulkEditForm(TagsBulkEditFormMixin, NautobotBulkEditForm):  # 
     pk = forms.ModelMultipleChoiceField(
         queryset=models.NVLinkDomain.objects.all(), widget=forms.MultipleHiddenInput
     )
+    protocol = DynamicModelChoiceField(queryset=models.NVLinkDomainProtocol.objects.all(), required=False)
+    topology = DynamicModelChoiceField(queryset=models.NVLinkDomainTopology.objects.all(), required=False)
     cluster_id = forms.CharField(required=False)
 
     class Meta:
@@ -133,6 +133,7 @@ class NVLinkDomainFilterForm(NautobotFilterForm):
         "rack_group",
         "rack",
         "protocol",
+        "topology",
         "cluster_id",
         "members",
         "tags",
@@ -193,12 +194,13 @@ class NVLinkDomainFilterForm(NautobotFilterForm):
         label="Rack",
     )
 
-    protocol = forms.ChoiceField(
-        choices=add_blank_choice(choices.NVLinkDomainProtocolChoices),
+    protocol = DynamicModelChoiceField(
+        queryset=models.NVLinkDomainProtocol.objects.all(),
         required=False,
-        widget=StaticSelect2(),
         label="Protocol",
     )
+
+    topology = DynamicModelChoiceField(queryset=models.NVLinkDomainTopology.objects.all(), required=False)
 
     cluster_id = forms.CharField(
         required=False,
@@ -603,3 +605,37 @@ class ResourceBlockMembershipFilterForm(NautobotFilterForm):
         "device",
         "resource_block",
     ]
+
+
+class NVLinkDomainProtocolForm(NautobotModelForm):
+    """Edit an NVLink domain protocol."""
+
+    class Meta:
+        """Model metadata."""
+
+        model = models.NVLinkDomainProtocol
+        fields = ["name", "description", "tags"]
+
+
+class NVLinkDomainProtocolFilterForm(NautobotFilterForm):
+    """Search reference entries."""
+
+    model = models.NVLinkDomainProtocol
+    q = forms.CharField(required=False, label="Search")
+
+
+class NVLinkDomainTopologyForm(NautobotModelForm):
+    """Edit an NVLink domain topology."""
+
+    class Meta:
+        """Model metadata."""
+
+        model = models.NVLinkDomainTopology
+        fields = ["name", "description", "tags"]
+
+
+class NVLinkDomainTopologyFilterForm(NautobotFilterForm):
+    """Search reference entries."""
+
+    model = models.NVLinkDomainTopology
+    q = forms.CharField(required=False, label="Search")

@@ -44,6 +44,12 @@ To install the NVDataModels app from the Python Package Index, follow these step
     }
     ```
 
+    Available settings:
+
+    | Setting | Default | Description |
+    | --- | --- | --- |
+    | `hidden_member_statuses` | `["Deleted"]` | Names of Device statuses hidden by default from the NVLink Domain "Members" panel and its count. A "Show" link in the panel header reveals them. Set to `[]` to disable. |
+
 1. Once the Nautobot configuration is updated, run the following command to apply migrations and clear the cache.
 
     ```sh

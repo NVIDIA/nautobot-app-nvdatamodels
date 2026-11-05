@@ -40,7 +40,10 @@ class NautobotNVIDIAConfig(NautobotAppConfig):
     required_settings = []
     min_version = "2.3.0"
     max_version = "2.9999"
-    default_settings = {}
+    default_settings = {
+        # Device statuses (by name) hidden from the NVLink Domain "Members" panel unless "Show" is clicked.
+        "hidden_member_statuses": ["Deleted"],
+    }
     caching_config = {}
     docs_view_name = "plugins:nautobot_nvdatamodels:docs"
 

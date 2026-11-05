@@ -50,7 +50,21 @@ class NVLinkDomainTest(APIViewTestCases.APIViewTestCase):
     bulk_update_data = {
         "cluster_id": "updated-cluster-id",
     }
-    choices_fields = ["protocol", "topology"]
+    choices_fields = []
+
+    def get_depth_fields(self):
+        """Reference names remain scalar API values at every depth."""
+        return [field for field in super().get_depth_fields() if field not in ("protocol", "topology")]
+
+    def model_to_dict(self, instance, fields, api=False):
+        """Compare the retained string API representation of reference fields."""
+        data = super().model_to_dict(instance, fields, api=api)
+        if api:
+            for field in ("protocol", "topology"):
+                if field in data:
+                    entry = getattr(instance, field)
+                    data[field] = entry.name if entry else None
+        return data
 
     @classmethod
     def setUpTestData(cls):
@@ -226,6 +240,10 @@ class ResourceBlockTest(APIViewTestCases.APIViewTestCase):
 
     def test_list_objects_depth_1(self):
         """Currently does not support depth=1."""
+
+    def get_depth_fields(self):
+        """Skip `devices`: it is computed (static + dynamic) and always returns brief references, regardless of depth."""
+        return [field for field in super().get_depth_fields() if field != "devices"]
 
     def get_deletable_object(self):
         """Get a resource block that can be safely deleted (no memberships)."""

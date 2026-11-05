@@ -52,15 +52,19 @@ class NVLinkDomainTestCase(ModelTestCases.BaseModelTestCase):
             name="Production",
             location=self.location,
             status=self.nvl_status,
-            protocol=choices.NVLinkDomainProtocolChoices.NVLINK_V5,
-            topology=choices.NVLinkDomainTopologyChoices.GB200_NVL72R1_C2G4,
+            protocol=models.NVLinkDomainProtocol.objects.get(
+                name=choices.NVLinkDomainProtocolChoices.NVLINK_V5
+            ),
+            topology=models.NVLinkDomainTopology.objects.get(
+                name=choices.NVLinkDomainTopologyChoices.GB200_NVL72R1_C2G4
+            ),
             cluster_id="cluster-1",
             role=self.nvl_role,
             tenant=self.tenant,
         )
         self.assertEqual(nvlinkdomain.name, "Production")
-        self.assertEqual(nvlinkdomain.protocol, choices.NVLinkDomainProtocolChoices.NVLINK_V5)
-        self.assertEqual(nvlinkdomain.topology, choices.NVLinkDomainTopologyChoices.GB200_NVL72R1_C2G4)
+        self.assertEqual(nvlinkdomain.protocol.name, choices.NVLinkDomainProtocolChoices.NVLINK_V5)
+        self.assertEqual(nvlinkdomain.topology.name, choices.NVLinkDomainTopologyChoices.GB200_NVL72R1_C2G4)
         self.assertEqual(nvlinkdomain.cluster_id, "cluster-1")
         self.assertEqual(nvlinkdomain.role, self.nvl_role)
         self.assertEqual(nvlinkdomain.tenant, self.tenant)
@@ -106,9 +110,9 @@ class NVLinkDomainTestCase(ModelTestCases.BaseModelTestCase):
                     name=f"Test-{protocol_value}",
                     location=self.location,
                     status=self.nvl_status,
-                    protocol=protocol_value,
+                    protocol=models.NVLinkDomainProtocol.objects.get(name=protocol_value),
                 )
-                self.assertEqual(nvlinkdomain.protocol, protocol_value)
+                self.assertEqual(nvlinkdomain.protocol.name, protocol_value)
 
     def test_nvlinkdomain_topology_choices(self):
         """Test topology field accepts valid choices."""
@@ -120,9 +124,9 @@ class NVLinkDomainTestCase(ModelTestCases.BaseModelTestCase):
                     name=f"Test-{topology_value}",
                     location=self.location,
                     status=self.nvl_status,
-                    topology=topology_value,
+                    topology=models.NVLinkDomainTopology.objects.get(name=topology_value),
                 )
-                self.assertEqual(nvlinkdomain.topology, topology_value)
+                self.assertEqual(nvlinkdomain.topology.name, topology_value)
 
     def test_nvlinkdomain_cluster_id_validation(self):
         """Test cluster_id field validation."""
@@ -145,14 +149,14 @@ class NVLinkDomainTestCase(ModelTestCases.BaseModelTestCase):
 
         domain1 = self.nvl_domains[0]
         self.assertEqual(domain1.name, "Test NVLink Domain 1")
-        self.assertEqual(domain1.protocol, choices.NVLinkDomainProtocolChoices.NVLINK_V5)
-        self.assertEqual(domain1.topology, choices.NVLinkDomainTopologyChoices.GB200_NVL36R1_C2G4)
+        self.assertEqual(domain1.protocol.name, choices.NVLinkDomainProtocolChoices.NVLINK_V5)
+        self.assertEqual(domain1.topology.name, choices.NVLinkDomainTopologyChoices.GB200_NVL36R1_C2G4)
         self.assertEqual(domain1.cluster_id, "cluster-1")
         self.assertIn(self.tag, domain1.tags)
 
         domain2 = self.nvl_domains[1]
         self.assertEqual(domain2.name, "Test NVLink Domain 2")
-        self.assertEqual(domain2.protocol, choices.NVLinkDomainProtocolChoices.NVLINK_V3)
+        self.assertEqual(domain2.protocol.name, choices.NVLinkDomainProtocolChoices.NVLINK_V3)
         self.assertEqual(domain2.role, self.nvl_role)
         self.assertEqual(domain2.tenant, self.tenant)
 

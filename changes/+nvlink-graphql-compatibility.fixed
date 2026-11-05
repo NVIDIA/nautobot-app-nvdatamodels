@@ -1,0 +1,1 @@
+Preserve scalar topology and protocol names in NVLink domain GraphQL queries, with permission-aware expanded objects available as nvlink_domain_topology and nvlink_domain_protocol.

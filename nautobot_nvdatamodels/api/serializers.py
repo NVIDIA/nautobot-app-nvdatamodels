@@ -20,12 +20,38 @@ from nautobot.apps.api import (
     NautobotModelSerializer,
     TaggedModelSerializerMixin,
 )
+from rest_framework import serializers
 
 from nautobot_nvdatamodels import models
 
 
+class ReferenceNameRelatedField(serializers.SlugRelatedField):
+    """Keep reference names on the wire while enforcing Nautobot view permissions."""
+
+    def get_queryset(self):
+        """Limit assignable references to objects visible to the requesting user."""
+        queryset = super().get_queryset()
+        user = getattr(self.context.get("request"), "user", None)
+        if user is not None:
+            queryset = queryset.restrict(user, "view")
+        return queryset
+
+
 class NVLinkDomainSerializer(NautobotModelSerializer, TaggedModelSerializerMixin):  # pylint: disable=too-many-ancestors
     """NVLinkDomain Serializer."""
+
+    protocol = ReferenceNameRelatedField(
+        slug_field="name",
+        queryset=models.NVLinkDomainProtocol.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    topology = ReferenceNameRelatedField(
+        slug_field="name",
+        queryset=models.NVLinkDomainTopology.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         """Meta attributes."""
@@ -83,4 +109,24 @@ class ResourceBlockMembershipSerializer(BaseModelSerializer):
         """Meta attributes."""
 
         model = models.ResourceBlockMembership
+        fields = "__all__"
+
+
+class NVLinkDomainProtocolSerializer(NautobotModelSerializer, TaggedModelSerializerMixin):
+    """Serialize NVLink domain protocol entries."""
+
+    class Meta:
+        """Model metadata."""
+
+        model = models.NVLinkDomainProtocol
+        fields = "__all__"
+
+
+class NVLinkDomainTopologySerializer(NautobotModelSerializer, TaggedModelSerializerMixin):
+    """Serialize NVLink domain topology entries."""
+
+    class Meta:
+        """Model metadata."""
+
+        model = models.NVLinkDomainTopology
         fields = "__all__"
